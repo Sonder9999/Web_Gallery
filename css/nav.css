@@ -1,0 +1,424 @@
+:root {
+    --primary-color: #4a90e2;/* 主色调 - 蓝色 */
+    --primary-hover: #357abd;/* 主色调悬停态 - 深蓝色 */
+    --text-color: #333;/* 主文字颜色 - 深灰色 */
+    --text-light: #666;/* 次要文字颜色 - 浅灰色 */
+    --bg-white: #ffffff;/* 白色背景 */
+    --bg-light: #f8f9fa;/* 浅灰色背景 */
+    --border-color: #e1e5e9;/* 边框颜色 - 很浅的灰色 */
+    --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.1);   /* 轻阴影 */
+    --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.15);    /* 中等阴影 */
+    --border-radius: 8px;
+    --transition-fast: 0.2s ease;/* 快速过渡动画 */
+    --transition-medium: 0.3s ease;
+}
+
+/* 重置和基础样式 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.5;
+    color: var(--text-color);
+    padding-top: 70px;
+    /* 为固定导航栏留出空间 */
+}
+
+/* 主导航栏 */
+#top-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--bg-white);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-light);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    z-index: 1000;
+    transition: var(--transition-medium);
+}
+
+/* Logo 区域 */
+#top-logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-right: 24px;
+}
+
+#top-logo-img {
+    height: 40px;
+    width: auto;
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
+}
+
+#top-logo-img:hover {
+    transform: scale(1.05);
+}
+
+/* 导航链接区域 */
+#links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    color: var(--text-color);
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.nav-link:hover {
+    background-color: var(--bg-light);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.nav-link i {
+    font-size: 16px;
+    width: 16px;
+    text-align: center;
+}
+
+.link-text {
+    transition: var(--transition-fast);
+}
+
+/* 搜索区域 */
+#search {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 500px;
+    margin: 0 24px;
+    position: relative;
+    /* 将边框和样式移到这里 */
+    background: var(--bg-light);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
+}
+
+#search:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.search-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    position: relative;
+}
+
+.search-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    font-size: 14px;
+    outline: none;
+    color: var(--text-color);
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+    /* 左侧圆角 */
+}
+
+.search-input::placeholder {
+    color: var(--text-light);
+}
+
+.nav-search-clean {
+    display: none;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--text-light);
+    background-color: transparent;
+    border: none;
+    transition: var(--transition-fast);
+}
+
+.nav-search-clean:hover {
+    color: var(--text-color);
+}
+
+.search-btn {
+    padding: 12px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
+    /* 右侧圆角 */
+    cursor: pointer;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-btn:hover {
+    background: var(--primary-hover);
+}
+
+.search-btn i {
+    font-size: 16px;
+}
+
+/* 用户区域 */
+#user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    margin-left: 24px;
+}
+
+#user-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+    transition: var(--transition-fast);
+}
+
+#user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--border-color);
+    transition: var(--transition-fast);
+    cursor: pointer;
+}
+
+#user-avatar:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+#user-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 移动端底部导航栏 */
+#bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-white);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    padding: 8px 0;
+}
+
+#bottom-nav .nav-links-mobile {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+#bottom-nav .nav-link {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 12px;
+    min-width: 60px;
+    text-align: center;
+}
+
+#bottom-nav .nav-link i {
+    font-size: 20px;
+}
+
+#bottom-nav .link-text {
+    font-size: 11px;
+    font-weight: 400;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+    #top-nav {
+        padding: 12px 16px;
+    }
+
+    #search {
+        max-width: 300px;
+        margin: 0 16px;
+    }
+
+    #user-name{
+        display: none;
+    }
+}
+
+@media (max-width: 880px) {
+
+    /* 隐藏导航链接文字 */
+    .link-text,
+    .user-name {
+        display: none;
+    }
+
+    #search {
+        margin: 0 12px;
+    }
+
+    #top-nav {
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 700px) {
+
+    /* 隐藏 Logo 和用户名称 */
+    #top-logo
+    {
+        display: none;
+    }
+
+    /* 隐藏导航链接文字 */
+    .link-text,.user-name {
+        display: none;
+    }
+
+    #search {
+        margin: 0 12px;
+    }
+
+    #top-nav {
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 600px) {
+
+    /* 隐藏 Logo 和头像 */
+    #top-logo,
+    #user-avatar {
+        display: none;
+    }
+
+    /* 隐藏导航链接文字 */
+    .link-text {
+        display: none;
+    }
+
+    #links {
+        gap: 4px;
+    }
+
+    .nav-link {
+        padding: 8px;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        justify-content: center;
+    }
+
+    #search {
+        margin: 0 8px;
+    }
+
+    #user {
+        margin-left: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    /* 移动端：导航链接移至底部 */
+    #links {
+        display: none;
+    }
+
+    #bottom-nav {
+        display: block;
+    }
+
+    body {
+        padding-bottom: 70px;
+        /* 为底部导航栏留空间 */
+    }
+
+    #top-nav {
+        padding: 8px 16px;
+    }
+
+    #search {
+        margin: 0;
+    }
+
+    #user {
+        margin-left: 16px;
+    }
+
+    /* 显示清除按钮（当有输入时） */
+    .search-input:not(:placeholder-shown)~.nav-search-clean {
+        display: block;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#top-nav {
+    animation: fadeIn 0.3s ease;
+}
+
+/* 聚焦状态优化 */
+.nav-link:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.search-btn:focus-visible {
+    outline: 2px solid white;
+    outline-offset: -2px;
+}
+
+/* 暗色模式支持（可选） */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text-color: #e1e5e9;
+        --text-light: #a0a6ac;
+        --bg-white: #1a1d21;
+        --bg-light: #2d3136;
+        --border-color: #3a3f45;
+    }
+}
