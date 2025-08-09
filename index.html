@@ -7,7 +7,9 @@
     <!-- 矢量图标icon -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <!-- 顶部导航栏样式 -->
-     <link rel="stylesheet" href="css/nav.css">
+    <link rel="stylesheet" href="css/nav.css">
+    <!-- gallery的样式 -->
+    <link rel="stylesheet" href="css/gallery.css">
 </head>
 <body>
     <!-- 顶部导航栏 -->
@@ -79,12 +81,57 @@
 
     <!-- 主要内容区域 -->
     <main id="main-content">
-        <!-- 这里放置图片展示区域等内容 -->
-         <!-- <img src="images/wallhaven-1pdpy3_4x.png" alt=""> -->
-         <img src="images/wallhaven-exkoxo.jpg" alt="" width="100%">
+        <!-- 筛选和排序控制 -->
+        <div id="gallery-controls">
+            <div class="control-group">
+                <button id="shuffle-btn" class="control-btn">
+                    <i class="fa-solid fa-shuffle"></i>
+                    重新排列
+                </button>
+                <button id="load-more-btn" class="control-btn">
+                    <i class="fa-solid fa-plus"></i>
+                    加载更多
+                </button>
+            </div>
+            <div class="stats">
+                已加载 <span id="loaded-count">0</span> 张图片
+            </div>
+        </div>
+
+        <!-- 瀑布流容器 -->
+        <div id="gallery-container">
+            <div id="gallery-grid" class="masonry-grid">
+                <!-- 图片将通过JS动态添加到这里 -->
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loading-indicator" class="loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>加载中...</span>
+            </div>
+        </div>
+
+        <!-- 图片预览弹窗 -->
+        <div id="image-modal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close">&times;</span>
+                <img id="modal-image" src="" alt="">
+                <div class="modal-info">
+                    <h3 id="modal-title"></h3>
+                    <p id="modal-path"></p>
+                    <div class="modal-actions">
+                        <button id="download-btn" class="control-btn">
+                            <i class="fa-solid fa-download"></i>
+                            下载
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- JavaScript -->
     <script src="scripts/nav.js"></script>
+    <script src="scripts/gallery.js"></script>
 </body>
 </html>
