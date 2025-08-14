@@ -151,7 +151,7 @@ class Gallery {
         this.bindModalEvents();
 
         // 无限滚动（可选）
-        // window.addEventListener('scroll', () => this.handleScroll());
+        window.addEventListener('scroll', () => this.handleScroll());
     }
 
     bindModalEvents() {
@@ -162,7 +162,7 @@ class Gallery {
         // 关闭弹窗
         closeBtn.addEventListener('click', () => {
             modal.classList.remove('show');
-            setTimeout(() => modal.style.display = 'none', 300);
+            setTimeout(() => modal.style.display = 'none', 0);
         });
 
         // 点击背景关闭
