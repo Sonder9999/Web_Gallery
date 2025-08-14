@@ -19,7 +19,7 @@ class ImageUploader {
     }
 
     bindEvents() {
-        // 文件选择
+        // ... (这部分代码保持不变) ...
         const fileInput = document.getElementById('file-input');
         const selectFilesBtn = document.getElementById('select-files-btn');
         const dropZone = document.getElementById('file-drop-zone');
@@ -27,12 +27,10 @@ class ImageUploader {
         selectFilesBtn.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
 
-        // 拖拽上传
         dropZone.addEventListener('dragover', (e) => this.handleDragOver(e));
         dropZone.addEventListener('dragleave', (e) => this.handleDragLeave(e));
         dropZone.addEventListener('drop', (e) => this.handleDrop(e));
 
-        // 批量标签管理
         const batchTagInput = document.getElementById('batch-tag-input');
         const addBatchTagBtn = document.getElementById('add-batch-tag-btn');
         const applyBatchTagsBtn = document.getElementById('apply-batch-tags-btn');
@@ -43,7 +41,6 @@ class ImageUploader {
         });
         applyBatchTagsBtn.addEventListener('click', () => this.applyBatchTags());
 
-        // 单个图片标签管理
         const individualTagInput = document.getElementById('individual-tag-input');
         const addIndividualTagBtn = document.getElementById('add-individual-tag-btn');
 
@@ -52,11 +49,11 @@ class ImageUploader {
             if (e.key === 'Enter') this.addIndividualTag();
         });
 
-        // 控制按钮
         document.getElementById('clear-all-btn').addEventListener('click', () => this.clearAll());
         document.getElementById('upload-all-btn').addEventListener('click', () => this.uploadAll());
         document.getElementById('cancel-upload-btn').addEventListener('click', () => this.cancelUpload());
     }
+
 
     handleFileSelect(event) {
         const files = Array.from(event.target.files);
@@ -352,38 +349,38 @@ class ImageUploader {
     }
 
     // --- 新增：实际的文件上传逻辑 ---
-    async uploadFile(fileData) {
+    async uploadFile(fileData, { onDuplicate = null } = {}) {
         const formData = new FormData();
-        formData.append('image', fileData.file); // 'image' 必须与后端 multer 配置一致
-        formData.append('tags', JSON.stringify(fileData.tags)); // 将标签数组转为JSON字符串
+        formData.append('image', fileData.file);
+        formData.append('tags', JSON.stringify(fileData.tags));
         formData.append('source', fileData.source);
 
         try {
-            // 将请求发送到您的后端服务
             const response = await fetch('http://localhost:3000/upload', {
                 method: 'POST',
                 body: formData,
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || '上传失败');
+            const result = await response.json();
+
+            // 如果检测到重复，并且提供了 onDuplicate 回调函数
+            if (response.ok && result.duplicate && typeof onDuplicate === 'function') {
+                onDuplicate(fileData); // 调用回调，把当前文件数据传回去
             }
 
-            return await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || '上传失败');
+            }
+
+            return result;
 
         } catch (error) {
             console.error(`上传文件 ${fileData.name} 失败:`, error);
-            // 在UI上显示错误信息
-            const uploadStatus = document.getElementById('upload-status');
-            uploadStatus.textContent = `错误: ${fileData.name} 上传失败。 ${error.message}`;
-            uploadStatus.style.color = 'red'; // 标记为红色
-            await new Promise(resolve => setTimeout(resolve, 3000)); // 暂停一下让用户看到错误
-            uploadStatus.style.color = ''; // 恢复颜色
-            return null; // 返回null表示失败
+            return { success: false, message: error.message }; // 返回失败对象
         }
     }
 
+    // --- 【重要】修改 uploadAll 方法 ---
     async uploadAll() {
         if (this.selectedFiles.length === 0) return;
 
@@ -395,33 +392,63 @@ class ImageUploader {
 
         modal.classList.add('show');
         progressTotal.textContent = this.selectedFiles.length;
-        uploadStatus.textContent = '准备上传...';
+        let uploadedCount = 0;
 
         for (let i = 0; i < this.selectedFiles.length; i++) {
             const fileData = this.selectedFiles[i];
+
             progressCurrent.textContent = i + 1;
             uploadStatus.textContent = `正在上传: ${fileData.name}`;
 
-            // 调用真实的上传方法
-            const result = await this.uploadFile(fileData);
+            const result = await this.uploadFile(fileData, {
+                // 定义一个在检测到重复时执行的回调函数
+                onDuplicate: async (duplicateFileData) => {
+                    uploadStatus.textContent = `发现重复文件: ${duplicateFileData.name}`;
+                    // 弹出确认框
+                    if (confirm(`图片 "${duplicateFileData.name}" 已存在，是否要覆盖更新它的标签和来源信息？`)) {
+                        uploadStatus.textContent = `正在覆盖更新: ${duplicateFileData.name}`;
 
-            if (result && result.success) {
-                // 更新进度条
-                const progress = ((i + 1) / this.selectedFiles.length) * 100;
+                        // 调用新的覆盖接口
+                        const formData = new FormData();
+                        formData.append('image', duplicateFileData.file);
+                        formData.append('tags', JSON.stringify(duplicateFileData.tags));
+                        formData.append('source', duplicateFileData.source);
+
+                        try {
+                            const overwriteResponse = await fetch('http://localhost:3000/overwrite', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            if (!overwriteResponse.ok) {
+                                throw new Error('覆盖失败');
+                            }
+                            uploadStatus.textContent = `覆盖成功: ${duplicateFileData.name}`;
+                        } catch (err) {
+                            uploadStatus.textContent = `覆盖失败: ${duplicateFileData.name}`;
+                        }
+                    } else {
+                        uploadStatus.textContent = `跳过重复文件: ${duplicateFileData.name}`;
+                    }
+                }
+            });
+
+            if (result.success) {
+                uploadedCount++;
+                const progress = (uploadedCount / this.selectedFiles.length) * 100;
                 progressFill.style.width = progress + '%';
             } else {
-                // 如果某个文件上传失败，可以选择停止或继续
-                // 这里我们选择继续上传下一个文件，但进度条不前进
-                console.error(`文件 ${fileData.name} 上传失败，跳过。`);
+                uploadStatus.textContent = `上传失败: ${fileData.name}. ${result.message}`;
+                await new Promise(resolve => setTimeout(resolve, 2000)); // 暂停让用户看到错误
             }
         }
 
         uploadStatus.textContent = '所有上传任务完成！';
         setTimeout(() => {
             modal.classList.remove('show');
-            this.clearAll(); // 上传完成后清空列表
+            this.clearAll();
         }, 2000);
     }
+
 
     /* async simulateUpload(fileData) {
         // 模拟上传延迟
