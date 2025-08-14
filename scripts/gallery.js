@@ -159,25 +159,32 @@ class Gallery {
         const closeBtn = document.querySelector('.modal-close');
         const downloadBtn = document.getElementById('download-btn');
 
-        // 关闭弹窗
-        closeBtn.addEventListener('click', () => {
+        // 关闭弹窗的函数
+        const closeModal = () => {
+            modal.classList.add('closing');
             modal.classList.remove('show');
-            setTimeout(() => modal.style.display = 'none', 0);
-        });
+
+            // 等待动画完成后隐藏弹窗
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.classList.remove('closing');
+            }, 300); // 与 CSS transition 时间一致
+        };
+
+        // 关闭按钮点击事件
+        closeBtn.addEventListener('click', closeModal);
 
         // 点击背景关闭
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                modal.classList.remove('show');
-                setTimeout(() => modal.style.display = 'none', 300);
+                closeModal();
             }
         });
 
         // ESC键关闭
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modal.classList.contains('show')) {
-                modal.classList.remove('show');
-                setTimeout(() => modal.style.display = 'none', 300);
+                closeModal();
             }
         });
 
@@ -309,8 +316,13 @@ class Gallery {
         modalTitle.textContent = fileName;
         modalPath.textContent = folderPath;
 
+        // 显示弹窗并添加动画
         modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('show'), 10);
+
+        // 使用 requestAnimationFrame 确保 display: flex 生效后再添加 show 类
+        requestAnimationFrame(() => {
+            modal.classList.add('show');
+        });
     }
 
     shuffleAndReload() {
