@@ -1,0 +1,208 @@
+<!-- upload.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上传图片 - Gallery</title>
+    <!-- 矢量图标icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- 样式文件 -->
+    <link rel="stylesheet" href="css/nav.css">
+    <link rel="stylesheet" href="css/upload.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav id="top-nav">
+        <div id="top-logo">
+            <img src="images/top_logo.png" id="top-logo-img" alt="Gallery Logo">
+        </div>
+
+        <div id="links">
+            <a href="/index.html" class="nav-link active" title="主页">
+                <i class="fa-solid fa-house"></i>
+                <span class="link-text">主页</span>
+            </a>
+            <a href="/tags" class="nav-link" title="标签">
+                <i class="fa-regular fa-bookmark"></i>
+                <span class="link-text">标签</span>
+            </a>
+            <a href="/admin" class="nav-link" title="管理">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="link-text">管理</span>
+            </a>
+            <a href="/user" class="nav-link" title="我的主页">
+                <i class="fa-regular fa-circle-user"></i>
+                <span class="link-text">用户</span>
+            </a>
+        </div>
+
+        <div id="search">
+            <div class="search-content">
+                <input class="search-input" type="text" placeholder="搜索标签、角色..." title="搜索">
+                <button class="nav-search-clean" type="button" title="清除">
+                    <i class="fa-solid fa-x"></i>
+                </button>
+            </div>
+            <button class="search-btn" type="button" title="搜索">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
+
+        <div id="user">
+            <div id="user-name">Sonder</div>
+            <div id="user-avatar">
+                <img src="images/user_avatar.png" id="user-avatar-img" alt="用户头像">
+            </div>
+        </div>
+    </nav>
+
+    <!-- 移动端底部导航栏 -->
+    <nav id="bottom-nav">
+        <div class="nav-links-mobile">
+            <a href="/index.html" class="nav-link active" title="主页">
+                <i class="fa-solid fa-house"></i>
+                <span class="link-text">主页</span>
+            </a>
+            <a href="/tags" class="nav-link" title="标签">
+                <i class="fa-regular fa-bookmark"></i>
+                <span class="link-text">标签</span>
+            </a>
+            <a href="/admin" class="nav-link" title="管理">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="link-text">管理</span>
+            </a>
+            <a href="/user" class="nav-link" title="用户">
+                <i class="fa-regular fa-circle-user"></i>
+                <span class="link-text">用户</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main id="upload-content">
+        <!-- 上传控制面板 -->
+        <div id="upload-controls">
+            <div class="control-group">
+                <h1><i class="fa-solid fa-upload"></i> 图片上传</h1>
+                <div class="upload-stats">
+                    已选择 <span id="selected-count">0</span> 张图片
+                </div>
+            </div>
+            <div class="action-group">
+                <button id="clear-all-btn" class="control-btn secondary" disabled>
+                    <i class="fa-solid fa-trash"></i>
+                    清空所有
+                </button>
+                <button id="upload-all-btn" class="control-btn primary" disabled>
+                    <i class="fa-solid fa-cloud-upload"></i>
+                    上传所有
+                </button>
+            </div>
+        </div>
+
+        <!-- 文件选择区域 -->
+        <div id="file-drop-zone" class="drop-zone">
+            <div class="drop-zone-content">
+                <i class="fa-solid fa-cloud-upload-alt"></i>
+                <h3>拖拽图片到此处或点击选择</h3>
+                <p>支持 JPG、PNG、WEBP 格式</p>
+                <button id="select-files-btn" class="control-btn primary">
+                    <i class="fa-solid fa-folder-open"></i>
+                    选择图片
+                </button>
+                <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+            </div>
+        </div>
+
+        <!-- 上传列表容器 -->
+        <div id="upload-container">
+            <div class="container-layout">
+                <!-- 图片列表 -->
+                <div id="images-list" class="images-column">
+                    <h3><i class="fa-solid fa-images"></i> 待上传图片</h3>
+                    <div id="images-grid" class="images-grid">
+                        <!-- 图片项将通过JS动态添加 -->
+                    </div>
+                </div>
+
+                <!-- 标签选择面板 -->
+                <div id="tags-panel" class="tags-column">
+                    <h3><i class="fa-solid fa-tags"></i> 标签管理</h3>
+
+                    <!-- 批量标签设置 -->
+                    <div class="batch-tags-section">
+                        <h4>批量设置标签</h4>
+                        <div class="tag-input-container">
+                            <input type="text" id="batch-tag-input" class="tag-input" placeholder="输入标签名称...">
+                            <button id="add-batch-tag-btn" class="add-tag-btn">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="batch-tags" class="tags-list">
+                            <!-- 批量标签显示在这里 -->
+                        </div>
+                        <button id="apply-batch-tags-btn" class="control-btn secondary">
+                            <i class="fa-solid fa-copy"></i>
+                            应用到所有图片
+                        </button>
+                    </div>
+
+                    <!-- 单个图片标签设置 -->
+                    <div class="individual-tags-section">
+                        <h4>单独设置标签</h4>
+                        <div id="selected-image-info" class="image-info">
+                            <p>请选择左侧图片进行标签编辑</p>
+                        </div>
+                        <div class="tag-input-container">
+                            <input type="text" id="individual-tag-input" class="tag-input" placeholder="为当前图片添加标签..." disabled>
+                            <button id="add-individual-tag-btn" class="add-tag-btn" disabled>
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                        <div id="individual-tags" class="tags-list">
+                            <!-- 当前选中图片的标签显示在这里 -->
+                        </div>
+                    </div>
+
+                    <!-- 推荐标签 -->
+                    <div class="recommended-tags-section">
+                        <h4>推荐标签</h4>
+                        <div id="recommended-tags" class="tags-list recommended">
+                            <!-- 推荐标签将通过JS动态添加 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上传进度弹窗 -->
+        <div id="upload-modal" class="modal">
+            <div class="modal-content upload-progress">
+                <h3><i class="fa-solid fa-upload"></i> 正在上传</h3>
+                <div class="progress-container">
+                    <div id="overall-progress" class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <div class="progress-text">
+                        <span id="progress-current">0</span> / <span id="progress-total">0</span>
+                    </div>
+                </div>
+                <div id="upload-status" class="upload-status">
+                    准备上传...
+                </div>
+                <div class="upload-actions">
+                    <button id="cancel-upload-btn" class="control-btn secondary">
+                        <i class="fa-solid fa-stop"></i>
+                        取消上传
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="scripts/nav.js"></script>
+    <script src="scripts/upload.js"></script>
+</body>
+</html>
