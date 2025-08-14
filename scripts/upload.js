@@ -351,6 +351,39 @@ class ImageUploader {
         document.getElementById('upload-all-btn').disabled = !hasFiles;
     }
 
+    // --- 新增：实际的文件上传逻辑 ---
+    async uploadFile(fileData) {
+        const formData = new FormData();
+        formData.append('image', fileData.file); // 'image' 必须与后端 multer 配置一致
+        formData.append('tags', JSON.stringify(fileData.tags)); // 将标签数组转为JSON字符串
+        formData.append('source', fileData.source);
+
+        try {
+            // 将请求发送到您的后端服务
+            const response = await fetch('http://localhost:3000/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || '上传失败');
+            }
+
+            return await response.json();
+
+        } catch (error) {
+            console.error(`上传文件 ${fileData.name} 失败:`, error);
+            // 在UI上显示错误信息
+            const uploadStatus = document.getElementById('upload-status');
+            uploadStatus.textContent = `错误: ${fileData.name} 上传失败。 ${error.message}`;
+            uploadStatus.style.color = 'red'; // 标记为红色
+            await new Promise(resolve => setTimeout(resolve, 3000)); // 暂停一下让用户看到错误
+            uploadStatus.style.color = ''; // 恢复颜色
+            return null; // 返回null表示失败
+        }
+    }
+
     async uploadAll() {
         if (this.selectedFiles.length === 0) return;
 
@@ -362,38 +395,45 @@ class ImageUploader {
 
         modal.classList.add('show');
         progressTotal.textContent = this.selectedFiles.length;
+        uploadStatus.textContent = '准备上传...';
 
         for (let i = 0; i < this.selectedFiles.length; i++) {
             const fileData = this.selectedFiles[i];
             progressCurrent.textContent = i + 1;
             uploadStatus.textContent = `正在上传: ${fileData.name}`;
 
-            const progress = ((i + 1) / this.selectedFiles.length) * 100;
-            progressFill.style.width = progress + '%';
+            // 调用真实的上传方法
+            const result = await this.uploadFile(fileData);
 
-            // 模拟上传过程
-            await this.simulateUpload(fileData);
-
-            // 实际上传时替换为真实的上传逻辑
-            // await this.uploadFile(fileData);
+            if (result && result.success) {
+                // 更新进度条
+                const progress = ((i + 1) / this.selectedFiles.length) * 100;
+                progressFill.style.width = progress + '%';
+            } else {
+                // 如果某个文件上传失败，可以选择停止或继续
+                // 这里我们选择继续上传下一个文件，但进度条不前进
+                console.error(`文件 ${fileData.name} 上传失败，跳过。`);
+            }
         }
 
-        uploadStatus.textContent = '上传完成！';
+        uploadStatus.textContent = '所有上传任务完成！';
         setTimeout(() => {
             modal.classList.remove('show');
-            this.clearAll();
+            this.clearAll(); // 上传完成后清空列表
         }, 2000);
     }
 
-    async simulateUpload(fileData) {
+    /* async simulateUpload(fileData) {
         // 模拟上传延迟
         return new Promise(resolve => {
             setTimeout(resolve, 1000 + Math.random() * 2000);
         });
     }
-
+ */
     cancelUpload() {
         document.getElementById('upload-modal').classList.remove('show');
+        // 注意：这里的取消只是关闭了弹窗，并不会停止已经发起的网络请求。
+        // 实现真正的请求中断需要更复杂 AbortController 逻辑。
     }
 }
 
