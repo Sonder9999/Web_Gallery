@@ -43,3 +43,7 @@ CREATE TABLE `image_tags` (
 ALTER TABLE `images`
 ADD COLUMN `file_hash` VARCHAR(64) NOT NULL COMMENT '文件内容的SHA256哈希值' AFTER `source_url`,
 ADD UNIQUE INDEX `idx_file_hash` (`file_hash`);
+
+ALTER TABLE `images`
+ADD COLUMN `aspect_ratio` DECIMAL(10, 4) NOT NULL COMMENT '宽高比 (width/height)' AFTER `height`,
+ADD INDEX `idx_aspect_ratio` (`aspect_ratio`);

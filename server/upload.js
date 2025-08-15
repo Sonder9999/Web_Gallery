@@ -7,6 +7,7 @@ const path = require('path');
 const cors = require('cors');
 const crypto = require('crypto');
 const fs = require('fs').promises;
+const { imageSize: sizeOf } = require('image-size');
 
 const app = express();
 const port = 3000;
@@ -32,19 +33,13 @@ const upload = multer({ storage: storage });
  * 封装的数据库事务处理函数，用于更新图片信息
  */
 async function updateImageInfo(connection, imageId, tags, source) {
-    // 1. 删除该图片所有旧的标签关联
     await connection.execute('DELETE FROM image_tags WHERE image_id = ?', [imageId]);
-
-    // 2. 更新图片的来源信息
     await connection.execute('UPDATE images SET source_url = ? WHERE id = ?', [source || '', imageId]);
-
-    // 3. 插入新的标签关联
     if (tags && tags.length > 0) {
         const tagList = JSON.parse(tags);
         for (const tagName of tagList) {
             let [rows] = await connection.execute('SELECT id FROM tags WHERE name = ?', [tagName]);
             let tagId;
-
             if (rows.length > 0) {
                 tagId = rows[0].id;
             } else {
@@ -65,6 +60,11 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 
     const fileBuffer = req.file.buffer;
     const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+    const dimensions = sizeOf(fileBuffer);
+
+    // --- [新增] 计算宽高比 ---
+    // 防止高度为0导致除法错误
+    const aspectRatio = dimensions.height > 0 ? dimensions.width / dimensions.height : 0;
 
     let connection;
     try {
@@ -82,7 +82,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const newFilename = uniqueSuffix + path.extname(req.file.originalname);
-        const uploadPath = path.join(__dirname, '../images/'); // 注意：上传路径已改为 'images' 文件夹
+        const uploadPath = path.join(__dirname, '../images/');
         const filepath = path.join(uploadPath, newFilename);
 
         await fs.mkdir(uploadPath, { recursive: true });
@@ -91,18 +91,16 @@ app.post('/upload', upload.single('image'), async (req, res) => {
         const { tags, source } = req.body;
         const { size } = req.file;
 
-        // 开始事务
         await connection.beginTransaction();
+
+        // --- [修改] INSERT 语句，增加 aspect_ratio ---
         const [imageResult] = await connection.execute(
-            'INSERT INTO images (filename, filepath, filesize, source_url, file_hash) VALUES (?, ?, ?, ?, ?)',
-            [newFilename, `images/${newFilename}`, size, source || '', hash] // 数据库中存相对路径
+            'INSERT INTO images (filename, filepath, filesize, width, height, aspect_ratio, source_url, file_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [newFilename, `images/${newFilename}`, size, dimensions.width, dimensions.height, aspectRatio, source || '', hash]
         );
         const imageId = imageResult.insertId;
 
-        // 复用更新标签的逻辑
         await updateImageInfo(connection, imageId, tags, source);
-
-        // 提交事务
         await connection.commit();
 
         res.status(201).json({
@@ -113,7 +111,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
         });
 
     } catch (error) {
-        if (connection) await connection.rollback(); // 如果出错，回滚事务
+        if (connection) await connection.rollback();
         console.error('上传处理失败:', error);
         res.status(500).json({ success: false, message: '服务器内部错误' });
     } finally {
@@ -124,8 +122,10 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 });
 
 
-// --- 新增 API 路由: 处理【覆盖更新】 ---
+
+// --- API 路由: 处理【覆盖更新】 ---
 app.post('/overwrite', upload.single('image'), async (req, res) => {
+    // ... (这部分逻辑基本不变，因为覆盖只是更新标签和来源，文件的尺寸是不会变的) ...
     if (!req.file) {
         return res.status(400).json({ success: false, message: '没有接收到图片文件' });
     }
@@ -145,19 +145,14 @@ app.post('/overwrite', upload.single('image'), async (req, res) => {
 
         const imageId = existingImages[0].id;
 
-        // 开始事务
         await connection.beginTransaction();
-
-        // 调用封装的函数来更新信息
         await updateImageInfo(connection, imageId, tags, source);
-
-        // 提交事务
         await connection.commit();
 
         res.status(200).json({ success: true, message: '图片信息覆盖更新成功！' });
 
     } catch (error) {
-        if (connection) await connection.rollback(); // 如果出错，回滚事务
+        if (connection) await connection.rollback();
         console.error('覆盖更新失败:', error);
         res.status(500).json({ success: false, message: '服务器内部错误' });
     } finally {
