@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标签管理 - Gallery</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="css/nav.css">
+    <link rel="stylesheet" href="css/tags.css"> </head>
+<body>
+    <nav id="top-nav">
+        <div id="top-logo">
+            <img src="images/top_logo.png" id="top-logo-img" alt="Gallery Logo">
+        </div>
+        <div id="links">
+            <a href="/index.html" class="nav-link" title="主页">
+                <i class="fa-solid fa-house"></i>
+                <span class="link-text">主页</span>
+            </a>
+            <a href="/tags.html" class="nav-link active" title="标签"> <i class="fa-regular fa-bookmark"></i>
+                <span class="link-text">标签</span>
+            </a>
+            <a href="/admin" class="nav-link" title="管理">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="link-text">管理</span>
+            </a>
+            <a href="/user" class="nav-link" title="我的主页">
+                <i class="fa-regular fa-circle-user"></i>
+                <span class="link-text">用户</span>
+            </a>
+        </div>
+        <div id="search">
+            <div class="search-content">
+                <input class="search-input" type="text" placeholder="搜索标签、角色..." title="搜索">
+                <button class="nav-search-clean" type="button" title="清除">
+                    <i class="fa-solid fa-x"></i>
+                </button>
+            </div>
+            <button class="search-btn" type="button" title="搜索">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
+        <div id="user">
+            <div id="user-name">Sonder</div>
+            <div id="user-avatar">
+                <img src="images/user_avatar.png" id="user-avatar-img" alt="用户头像">
+            </div>
+        </div>
+    </nav>
+    <nav id="bottom-nav">
+        <div class="nav-links-mobile">
+            <a href="/index.html" class="nav-link active" title="主页">
+                <i class="fa-solid fa-house"></i>
+                <span class="link-text">主页</span>
+            </a>
+            <a href="/tags" class="nav-link" title="标签">
+                <i class="fa-regular fa-bookmark"></i>
+                <span class="link-text">标签</span>
+            </a>
+            <a href="/admin" class="nav-link" title="管理">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="link-text">管理</span>
+            </a>
+            <a href="/user" class="nav-link" title="用户">
+                <i class="fa-regular fa-circle-user"></i>
+                <span class="link-text">用户</span>
+            </a>
+        </div>
+    </nav>
+
+    <main id="tags-content">
+        <div class="tags-header">
+            <h1><i class="fa-solid fa-tags"></i> 标签管理</h1>
+        </div>
+
+        <div class="input-section">
+            <form id="add-tag-form">
+                <div id="input-fields-container" class="input-fields">
+                    </div>
+                <div class="input-actions">
+                    <button type="button" id="clear-inputs-btn" class="control-btn secondary">
+                        <i class="fa-solid fa-eraser"></i> 清空
+                    </button>
+                    <button type="submit" id="submit-btn" class="control-btn primary">
+                        <i class="fa-solid fa-database"></i> 保存到数据库
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table id="tags-table">
+                <thead>
+                    </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <div id="loading-indicator" class="loading-spinner">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+            </div>
+        </div>
+    </main>
+
+    <script src="scripts/nav.js"></script>
+    <script src="scripts/tags.js"></script> </body>
+</html>
