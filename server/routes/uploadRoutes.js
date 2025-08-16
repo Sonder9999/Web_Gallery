@@ -186,4 +186,27 @@ router.post('/overwrite', upload.single('image'), async (req, res) => {
     }
 });
 
+// --- [新增] API 路由: 获取所有图片信息用于主页展示 ---
+router.get('/api/images', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+
+        // 从数据库查询所有图片，并选择需要的字段
+        // 按ID降序排序，让最新上传的图片显示在最前面
+        const [images] = await connection.execute(
+            'SELECT id, filename, filepath, width, height FROM images ORDER BY id DESC'
+        );
+
+        res.status(200).json(images);
+    } catch (error) {
+        console.error('获取图片列表失败:', error);
+        res.status(500).json({ success: false, message: '服务器内部错误' });
+    } finally {
+        if (connection) {
+            await connection.end();
+        }
+    }
+});
+
 module.exports = router;
