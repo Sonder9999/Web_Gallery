@@ -161,4 +161,49 @@ router.delete('/tags/:id', async (req, res) => {
     }
 });
 
+// --- [新增] API 路由: 获取用于上传页面的推荐标签 ---
+// 示例请求: GET /api/tags/suggestions?lang=zh
+router.get('/tags/suggestions', async (req, res) => {
+    // 从查询参数获取想要的语言，如果没有则默认使用 'zh' (中文)
+    const requestedLang = req.query.lang || 'zh';
+    const fallbackLang = 'zh'; // 如果指定语言不存在，则使用此语言作为备选
+
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+
+        // 这是一个更高级的SQL查询:
+        // 1. LEFT JOIN: 确保每个主标签(t)都至少有一行结果。
+        // 2. COALESCE: 核心功能。它会按顺序检查值是否为NULL，并返回第一个非NULL的值。
+        //    - 我们先尝试获取'requestedLang'的别名。
+        //    - 如果找不到(NULL)，再尝试获取'fallbackLang'的别名。
+        //    - 如果还找不到，最后使用主标签表中的'name'字段。
+        // 3. GROUP BY t.id: 确保每个标签概念只返回一个最终的名字。
+        const [results] = await connection.execute(`
+            SELECT
+                COALESCE(
+                    (SELECT name FROM tag_aliases WHERE tag_id = t.id AND lang = ?),
+                    (SELECT name FROM tag_aliases WHERE tag_id = t.id AND lang = ?),
+                    t.name
+                ) AS tagName
+            FROM tags t
+            GROUP BY t.id
+            ORDER BY tagName ASC;
+        `, [requestedLang, fallbackLang]);
+
+        // 将查询结果对象数组转换为简单的字符串数组
+        const tagNames = results.map(row => row.tagName);
+
+        res.status(200).json(tagNames);
+
+    } catch (error) {
+        console.error('获取推荐标签失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    } finally {
+        if (connection) {
+            await connection.end();
+        }
+    }
+});
+
 module.exports = router;

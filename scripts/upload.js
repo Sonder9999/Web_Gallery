@@ -1,25 +1,44 @@
-// scripts/upload.js - 上传页面交互功能
+// scripts/upload.js - (重写) 从数据库动态获取推荐标签
 
 class ImageUploader {
     constructor() {
+        // --- [新增] 语言配置开关 ---
+        // 在这里修改你希望推荐标签显示的语言。
+        // 可选值: 'zh', 'en', 'ja', 'pinyin', 'nickname' 等你在数据库中定义的 lang 类型。
+        this.TAG_SUGGESTION_LANGUAGE = 'zh';
+        this.API_BASE_URL = 'http://localhost:3000';
+
         this.selectedFiles = [];
         this.currentSelectedImage = null;
-        this.recommendedTags = [
-            '原神', '珊瑚宫心海', '崩坏三', 'Elysia', '崩坏星穹铁道', '流萤',
-            '动漫', '游戏', '角色', '风景', '插画', '4K', '高清'
-        ];
-
-        this.init();
+        // [移除] 不再需要硬编码的 recommendedTags 数组
     }
 
-    init() {
+    // [修改] init 方法现在是异步的
+    async init() {
         this.bindEvents();
-        this.renderRecommendedTags();
+        await this.fetchAndRenderRecommendedTags(); // 异步获取并渲染推荐标签
         this.updateStats();
     }
 
+    /**
+     * [新增] 从后端API获取推荐标签列表
+     */
+    async fetchAndRenderRecommendedTags() {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/api/tags/suggestions?lang=${this.TAG_SUGGESTION_LANGUAGE}`);
+            if (!response.ok) {
+                throw new Error('网络请求失败');
+            }
+            const recommendedTags = await response.json();
+            this.renderRecommendedTags(recommendedTags); // 将获取到的数据传入渲染函数
+        } catch (error) {
+            console.error('加载推荐标签失败:', error);
+            const container = document.getElementById('recommended-tags');
+            container.innerHTML = `<span class="error-message">标签加载失败</span>`;
+        }
+    }
+
     bindEvents() {
-        // ... (这部分代码保持不变) ...
         const fileInput = document.getElementById('file-input');
         const selectFilesBtn = document.getElementById('select-files-btn');
         const dropZone = document.getElementById('file-drop-zone');
@@ -320,14 +339,23 @@ class ImageUploader {
         this.updateStats();
     }
 
-    renderRecommendedTags() {
+    /**
+     * [修改] 渲染推荐标签的函数
+     * @param {string[]} tags - 要渲染的标签字符串数组
+     */
+    renderRecommendedTags(tags = []) {
         const container = document.getElementById('recommended-tags');
-        container.innerHTML = this.recommendedTags.map(tag => `
+        if (tags.length === 0) {
+            container.innerHTML = '<span>暂无推荐标签</span>';
+            return;
+        }
+        container.innerHTML = tags.map(tag => `
             <span class="tag-item recommended" onclick="uploadManager.addToBatchTags('${tag}')">
                 ${tag}
             </span>
         `).join('');
     }
+
 
     clearAll() {
         if (confirm('确定要清空所有选中的图片吗？')) {
@@ -467,7 +495,8 @@ class ImageUploader {
 // 全局实例，供HTML调用
 let uploadManager;
 
-// 页面加载完成后初始化
+// [修改] DOMContentLoaded 现在会调用异步的 init 方法
 document.addEventListener('DOMContentLoaded', () => {
     uploadManager = new ImageUploader();
+    uploadManager.init(); // 调用新的异步 init
 });
