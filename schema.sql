@@ -62,3 +62,6 @@ CREATE TABLE `tag_aliases` (
     CONSTRAINT `fk_alias_tag` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '标签别名与多语言表';
 
+ALTER TABLE `tags`
+ADD COLUMN `parent_id` INT UNSIGNED NULL DEFAULT NULL COMMENT '父标签ID，形成层级关系' AFTER `primary_name_en`,
+ADD CONSTRAINT `fk_parent_tag` FOREIGN KEY (`parent_id`) REFERENCES `tags` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;

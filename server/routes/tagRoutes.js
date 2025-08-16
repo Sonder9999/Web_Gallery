@@ -1,5 +1,5 @@
-// server/routes/tagRoutes.js - (已修复) 处理标签管理的路由模块
-
+// server/routes/tagRoutes.js - 支持层级结构的标签路由
+// filepath: f:\Study\ComputerScience\OtherClass\web\Gallery\server\routes\tagRoutes.js
 const express = require('express');
 const mysql = require('mysql2/promise');
 const router = express.Router();
@@ -8,29 +8,68 @@ const router = express.Router();
 const dbConfig = {
     host: 'localhost',
     user: 'root',
-    password: '198386', // 你的密码
+    password: '198386',
     database: 'gallery_db'
 };
 
-// 1. 获取所有标签和别名 (GET /api/tags)
+// 构建树形结构的辅助函数
+function buildTree(flatData) {
+    const map = {};
+    const roots = [];
+
+    // 先创建映射
+    flatData.forEach(item => {
+        map[item.id] = { ...item, children: [] };
+    });
+
+    // 构建树形结构
+    flatData.forEach(item => {
+        if (item.parent_id && map[item.parent_id]) {
+            map[item.parent_id].children.push(map[item.id]);
+        } else {
+            roots.push(map[item.id]);
+        }
+    });
+
+    return roots;
+}
+
+// 1. 获取所有标签（树形结构）(GET /api/tags)
 router.get('/tags', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        const [tags] = await connection.execute('SELECT * FROM tags ORDER BY primary_name_en ASC');
+
+        // 获取所有标签（包含 parent_id）
+        const [tags] = await connection.execute(`
+            SELECT id, name, primary_name_en, parent_id
+            FROM tags
+            ORDER BY parent_id, primary_name_en ASC
+        `);
+
+        // 获取所有别名
         const [aliases] = await connection.execute('SELECT * FROM tag_aliases');
 
+        // 组装数据
         const tagMap = {};
         tags.forEach(tag => {
             tagMap[tag.id] = { ...tag, aliases: [] };
         });
+
         aliases.forEach(alias => {
             if (tagMap[alias.tag_id]) {
-                tagMap[alias.tag_id].aliases.push(alias);
+                tagMap[alias.tag_id].aliases.push({
+                    id: alias.id,
+                    name: alias.name,
+                    lang: alias.lang
+                });
             }
         });
 
-        res.json(Object.values(tagMap));
+        // 转换为树形结构
+        const treeData = buildTree(Object.values(tagMap));
+
+        res.json(treeData);
     } catch (error) {
         console.error('获取标签失败:', error);
         res.status(500).json({ message: '服务器内部错误' });
@@ -39,32 +78,33 @@ router.get('/tags', async (req, res) => {
     }
 });
 
-// 2. 添加一个新的标签概念 (POST /api/tags) - [重要更新]
+// 2. 添加新标签（支持层级）(POST /api/tags)
 router.post('/tags', async (req, res) => {
-    // 接收一个主英文名和一个别名数组
-    const { primary_name_en, aliases } = req.body;
+    const { primary_name_en, aliases, parent_id } = req.body;
+
     if (!primary_name_en || !aliases || !Array.isArray(aliases) || aliases.length === 0) {
         return res.status(400).json({ message: '缺少必要字段或别名数组为空' });
     }
 
-    // 使用别名数组中的第一个名字作为主表中的'name'字段
-    const primaryDisplayName = aliases[0].name;
+    // 使用中文别名作为主显示名称
+    const zhAlias = aliases.find(a => a.lang === 'zh');
+    const primaryDisplayName = zhAlias ? zhAlias.name : aliases[0].name;
 
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
         await connection.beginTransaction();
 
-        // 步骤 1: 插入主标签概念
+        // 插入主标签（包含 parent_id）
         const [tagResult] = await connection.execute(
-            'INSERT INTO tags (name, primary_name_en) VALUES (?, ?)',
-            [primaryDisplayName, primary_name_en]
+            'INSERT INTO tags (name, primary_name_en, parent_id) VALUES (?, ?, ?)',
+            [primaryDisplayName, primary_name_en, parent_id || null]
         );
         const tagId = tagResult.insertId;
 
-        // 步骤 2: 遍历别名数组，并将每一条插入到 tag_aliases 表中
+        // 插入所有别名
         for (const alias of aliases) {
-            if (alias.name && alias.lang) { // 确保别名对象是有效的
+            if (alias.name && alias.lang) {
                 await connection.execute(
                     'INSERT INTO tag_aliases (tag_id, name, lang) VALUES (?, ?, ?)',
                     [tagId, alias.name, alias.lang]
@@ -73,136 +113,133 @@ router.post('/tags', async (req, res) => {
         }
 
         await connection.commit();
-        res.status(201).json({ success: true, message: '标签及所有别名创建成功' });
+        res.status(201).json({
+            success: true,
+            message: '标签创建成功',
+            id: tagId
+        });
     } catch (error) {
         if (connection) await connection.rollback();
         console.error('添加标签失败:', error);
-        res.status(500).json({ message: '添加失败，可能是主英文名重复' });
+        res.status(500).json({ message: '添加失败: ' + error.message });
     } finally {
         if (connection) await connection.end();
     }
 });
 
+// 3. 更新标签（支持层级）(PUT /api/tags/:id)
+router.put('/tags/:id', async (req, res) => {
+    const { id } = req.params;
+    const { primary_name_en, aliases, parent_id } = req.body;
 
-// 3. 为已存在的标签添加一个新别名 (POST /api/aliases)
-router.post('/aliases', async (req, res) => {
-    const { tag_id, name, lang } = req.body;
-    if (!tag_id || !name || !lang) {
+    if (!primary_name_en || !aliases || !Array.isArray(aliases)) {
         return res.status(400).json({ message: '缺少必要字段' });
     }
+
+    const zhAlias = aliases.find(a => a.lang === 'zh');
+    const primaryDisplayName = zhAlias ? zhAlias.name : aliases[0].name;
+
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
+        await connection.beginTransaction();
+
+        // 更新主标签
         await connection.execute(
-            'INSERT INTO tag_aliases (tag_id, name, lang) VALUES (?, ?, ?)',
-            [tag_id, name, lang]
+            'UPDATE tags SET name = ?, primary_name_en = ?, parent_id = ? WHERE id = ?',
+            [primaryDisplayName, primary_name_en, parent_id || null, id]
         );
-        res.status(201).json({ success: true, message: '别名添加成功' });
+
+        // 删除旧的别名
+        await connection.execute('DELETE FROM tag_aliases WHERE tag_id = ?', [id]);
+
+        // 插入新的别名
+        for (const alias of aliases) {
+            if (alias.name && alias.lang) {
+                await connection.execute(
+                    'INSERT INTO tag_aliases (tag_id, name, lang) VALUES (?, ?, ?)',
+                    [id, alias.name, alias.lang]
+                );
+            }
+        }
+
+        await connection.commit();
+        res.json({ success: true, message: '标签更新成功' });
     } catch (error) {
-        console.error('添加别名失败:', error);
-        res.status(500).json({ message: '添加别名失败' });
+        if (connection) await connection.rollback();
+        console.error('更新标签失败:', error);
+        res.status(500).json({ message: '更新失败: ' + error.message });
     } finally {
         if (connection) await connection.end();
     }
 });
 
-// 4. 更新一个别名 (PUT /api/aliases/:id)
-router.put('/aliases/:id', async (req, res) => {
-    const { id } = req.params;
-    const { name, lang } = req.body;
-    if (!name || !lang) {
-        return res.status(400).json({ message: '缺少必要字段' });
-    }
-    let connection;
-    try {
-        connection = await mysql.createConnection(dbConfig);
-        await connection.execute(
-            'UPDATE tag_aliases SET name = ?, lang = ? WHERE id = ?',
-            [name, lang, id]
-        );
-        res.json({ success: true, message: '别名更新成功' });
-    } catch (error) {
-        console.error('更新别名失败:', error);
-        res.status(500).json({ message: '更新别名失败' });
-    } finally {
-        if (connection) await connection.end();
-    }
-});
-
-// 5. 删除一个别名 (DELETE /api/aliases/:id)
-router.delete('/aliases/:id', async (req, res) => {
-    const { id } = req.params;
-    let connection;
-    try {
-        connection = await mysql.createConnection(dbConfig);
-        await connection.execute('DELETE FROM tag_aliases WHERE id = ?', [id]);
-        res.json({ success: true, message: '别名删除成功' });
-    } catch (error) {
-        console.error('删除别名失败:', error);
-        res.status(500).json({ message: '删除别名失败' });
-    } finally {
-        if (connection) await connection.end();
-    }
-});
-
-// 6. 删除一个标签概念 (及其所有别名) (DELETE /api/tags/:id)
+// 4. 删除标签（处理子标签）(DELETE /api/tags/:id)
 router.delete('/tags/:id', async (req, res) => {
     const { id } = req.params;
+
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
+        await connection.beginTransaction();
+
+        // 检查是否有子标签
+        const [children] = await connection.execute(
+            'SELECT id FROM tags WHERE parent_id = ?', [id]
+        );
+
+        // 将子标签的 parent_id 设为 NULL（变为顶级标签）
+        if (children.length > 0) {
+            await connection.execute(
+                'UPDATE tags SET parent_id = NULL WHERE parent_id = ?', [id]
+            );
+        }
+
+        // 删除标签（外键约束会自动删除相关别名）
         await connection.execute('DELETE FROM tags WHERE id = ?', [id]);
-        res.json({ success: true, message: '标签概念删除成功' });
+
+        await connection.commit();
+        res.json({
+            success: true,
+            message: `标签删除成功${children.length > 0 ? `，${children.length} 个子标签已变为顶级标签` : ''}`
+        });
     } catch (error) {
+        if (connection) await connection.rollback();
         console.error('删除标签失败:', error);
-        res.status(500).json({ message: '删除标签失败' });
+        res.status(500).json({ message: '删除失败: ' + error.message });
     } finally {
         if (connection) await connection.end();
     }
 });
 
-// --- [新增] API 路由: 获取用于上传页面的推荐标签 ---
-// 示例请求: GET /api/tags/suggestions?lang=zh
-router.get('/tags/suggestions', async (req, res) => {
-    // 从查询参数获取想要的语言，如果没有则默认使用 'zh' (中文)
-    const requestedLang = req.query.lang || 'zh';
-    const fallbackLang = 'zh'; // 如果指定语言不存在，则使用此语言作为备选
+// 5. 获取标签路径（面包屑导航用）(GET /api/tags/:id/path)
+router.get('/tags/:id/path', async (req, res) => {
+    const { id } = req.params;
 
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
 
-        // 这是一个更高级的SQL查询:
-        // 1. LEFT JOIN: 确保每个主标签(t)都至少有一行结果。
-        // 2. COALESCE: 核心功能。它会按顺序检查值是否为NULL，并返回第一个非NULL的值。
-        //    - 我们先尝试获取'requestedLang'的别名。
-        //    - 如果找不到(NULL)，再尝试获取'fallbackLang'的别名。
-        //    - 如果还找不到，最后使用主标签表中的'name'字段。
-        // 3. GROUP BY t.id: 确保每个标签概念只返回一个最终的名字。
-        const [results] = await connection.execute(`
-            SELECT
-                COALESCE(
-                    (SELECT name FROM tag_aliases WHERE tag_id = t.id AND lang = ?),
-                    (SELECT name FROM tag_aliases WHERE tag_id = t.id AND lang = ?),
-                    t.name
-                ) AS tagName
-            FROM tags t
-            GROUP BY t.id
-            ORDER BY tagName ASC;
-        `, [requestedLang, fallbackLang]);
+        const path = [];
+        let currentId = id;
 
-        // 将查询结果对象数组转换为简单的字符串数组
-        const tagNames = results.map(row => row.tagName);
+        while (currentId) {
+            const [rows] = await connection.execute(
+                'SELECT id, name, parent_id FROM tags WHERE id = ?', [currentId]
+            );
 
-        res.status(200).json(tagNames);
+            if (rows.length === 0) break;
 
-    } catch (error) {
-        console.error('获取推荐标签失败:', error);
-        res.status(500).json({ message: '服务器内部错误' });
-    } finally {
-        if (connection) {
-            await connection.end();
+            path.unshift(rows[0]);
+            currentId = rows[0].parent_id;
         }
+
+        res.json(path);
+    } catch (error) {
+        console.error('获取标签路径失败:', error);
+        res.status(500).json({ message: '获取路径失败' });
+    } finally {
+        if (connection) await connection.end();
     }
 });
 

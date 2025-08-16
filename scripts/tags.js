@@ -1,347 +1,386 @@
-// scripts/tags.js - (已修复) Excel风格的标签管理页前端逻辑
+// scripts/tags.js - (最终版) 支持层级结构的标签管理脚本
 
-class TagEditor {
+class HierarchicalTagsManager {
     constructor() {
         this.API_BASE_URL = 'http://localhost:3000/api';
-        this.tagsData = []; // 从API获取的原始数据
-        this.tableData = []; // 转换为表格结构的扁平数据
-        // 固定的核心语言列，作为表格的基础
-        this.baseHeaders = [
-            { key: 'zh', title: '中文' },
-            { key: 'en', title: '英文' },
-            { key: 'ja', title: '日语' },
-            { key: 'pinyin', title: '拼音' }
+        this.tagsTree = []; // 存储从API获取的原始树形数据
+        this.flatTags = new Map(); // 使用Map存储扁平化数据，方便通过ID快速查找
+        this.currentEditingTagId = null; // 正在编辑的标签ID
+        this.tagToDelete = null; // 准备删除的标签对象
+
+        // 基础字段配置
+        this.baseFields = [
+            { key: 'zh', label: '中文名', required: true },
+            { key: 'en', label: '英文名', required: true },
+            { key: 'ja', label: '日语名' },
+            { key: 'pinyin', label: '拼音' }
         ];
-        this.dynamicAliasCount = 1; // 动态“别称”列的数量，至少为1
-        this.editingCell = null; // 记录当前正在编辑的单元格，防止重复触发保存
+        this.aliasCount = 3; // 默认显示的“别称”输入框数量
     }
 
     async init() {
         this.cacheDOMElements();
-        this.bindEvents();
-        await this.fetchAndRender();
+        this.renderInputFields();
+        this.bindGlobalEvents();
+        await this.loadAndRenderAll();
+    }
+
+    /**
+     * [新增] 获取一个标签及其所有子孙标签的ID列表
+     * @param {number} tagId - 起始标签的ID
+     * @returns {number[]} - 包含起始标签及其所有后代ID的数组
+     */
+    getDescendantIds(tagId) {
+        const descendants = [];
+        const findChildren = (id) => {
+            descendants.push(id);
+            const tag = this.flatTags.get(id);
+            if (tag && tag.children) {
+                tag.children.forEach(child => findChildren(child.id));
+            }
+        };
+        findChildren(tagId);
+        return descendants;
     }
 
     cacheDOMElements() {
+        // 缓存所有需要操作的DOM元素
         this.form = document.getElementById('add-tag-form');
-        this.inputFieldsContainer = document.getElementById('input-fields-container');
-        this.tableHead = document.querySelector('#tags-table thead');
-        this.tableBody = document.querySelector('#tags-table tbody');
+        this.formTitle = document.getElementById('form-title');
+        this.submitText = document.getElementById('submit-text');
+        this.parentSelector = document.getElementById('parent-selector');
+        this.clearParentBtn = document.getElementById('clear-parent-btn');
+        this.cancelEditBtn = document.getElementById('cancel-edit-btn');
+        this.treeContainer = document.getElementById('tags-tree');
         this.loadingIndicator = document.getElementById('loading-indicator');
+        this.deleteModal = document.getElementById('delete-modal');
+        this.deleteTagNameSpan = document.getElementById('delete-tag-name');
+        this.childrenWarning = document.getElementById('children-warning');
     }
 
-    bindEvents() {
-        document.getElementById('clear-inputs-btn').addEventListener('click', () => this.clearInputs());
+    bindGlobalEvents() {
+        // 绑定不会随渲染变化的全局事件
         this.form.addEventListener('submit', (e) => this.handleFormSubmit(e));
-        // 使用事件委托处理表格的所有交互，性能更佳
-        this.tableBody.addEventListener('click', (e) => this.handleTableClick(e));
+        document.getElementById('clear-inputs-btn').addEventListener('click', () => this.clearInputs());
+        this.cancelEditBtn.addEventListener('click', () => this.cancelEditMode());
+        this.clearParentBtn.addEventListener('click', () => this.clearParentSelection());
+        document.getElementById('expand-all-btn').addEventListener('click', () => this.toggleAll(true));
+        document.getElementById('collapse-all-btn').addEventListener('click', () => this.toggleAll(false));
+        document.getElementById('cancel-delete-btn').addEventListener('click', () => this.hideDeleteModal());
+        document.getElementById('confirm-delete-btn').addEventListener('click', () => this.confirmDelete());
+
+        // 使用事件委托来处理动态生成的树节点交互
+        this.treeContainer.addEventListener('click', (e) => this.handleTreeInteraction(e));
     }
 
-    // --- 核心数据处理与渲染流程 ---
-
-    async fetchAndRender() {
+    async loadAndRenderAll() {
         this.showLoading(true);
         try {
             const response = await fetch(`${this.API_BASE_URL}/tags`);
-            if (!response.ok) throw new Error('网络请求失败');
-            this.tagsData = await response.json();
-            this.processDataForTable(); // 转换数据
-            this.render(); // 统一渲染所有部分
+            if (!response.ok) throw new Error(`网络错误: ${response.statusText}`);
+            this.tagsTree = await response.json();
+
+            // 创建一个扁平化的数据结构，方便通过ID快速查找
+            this.flatTags.clear();
+            const flatten = (nodes) => {
+                nodes.forEach(node => {
+                    this.flatTags.set(node.id, node);
+                    if (node.children) flatten(node.children);
+                });
+            };
+            flatten(this.tagsTree);
+
+            this.renderParentSelector();
+            this.renderTree();
         } catch (error) {
-            this.tableBody.innerHTML = `<tr><td colspan="100%">加载失败: ${error.message}</td></tr>`;
+            console.error('加载标签数据失败:', error);
+            this.treeContainer.innerHTML = `<p class="error-message">加载失败: ${error.message}</p>`;
         } finally {
             this.showLoading(false);
         }
     }
 
-    /**
-     * [已修复] 将从API获取的数据转换为适合表格渲染的结构
-     */
-    processDataForTable() {
-        // 1. 计算需要多少个动态“别称”列
-        let maxDynamicAliases = 0;
-        this.tagsData.forEach(tag => {
-            // “别称”指的是语言(lang)不属于我们预设的基础语言的那些标签
-            const dynamicAliases = tag.aliases.filter(alias => !this.baseHeaders.some(h => h.key === alias.lang));
-            if (dynamicAliases.length > maxDynamicAliases) {
-                maxDynamicAliases = dynamicAliases.length;
-            }
+    // --- 渲染 ---
+    renderInputFields() {
+        const container = document.getElementById('input-fields-container');
+        let html = '';
+        this.baseFields.forEach(field => {
+            html += `
+                <div class="input-field-group">
+                    <label for="input-${field.key}">${field.label}${field.required ? ' *' : ''}</label>
+                    <input type="text" id="input-${field.key}" data-lang="${field.key}" placeholder="${field.label}..." ${field.required ? 'required' : ''}>
+                </div>`;
         });
-        // 保证至少有3个“别称”列，即使所有标签都没有别称
-        this.dynamicAliasCount = Math.max(3, maxDynamicAliases + 1);
+        for (let i = 1; i <= this.aliasCount; i++) {
+            html += `
+                <div class="input-field-group">
+                    <label for="input-alias${i}">别称 ${i}</label>
+                    <input type="text" id="input-alias${i}" data-lang="nickname" placeholder="别称 ${i}...">
+                </div>`;
+        }
+        container.innerHTML = html;
+    }
 
-        // 2. 将原始数据转换为扁平的表格行数据
-        this.tableData = this.tagsData.map(tag => {
-            const row = {
-                tagId: tag.id,
-                primaryName: tag.primary_name_en,
-                // 使用一个Map来存储所有别名，方便按语言key快速查找
-                aliases: new Map()
-            };
+    renderParentSelector() {
+        let optionsHtml = '<option value="">-- 顶级标签 (无父标签) --</option>';
 
-            const dynamicAliases = tag.aliases.filter(alias => !this.baseHeaders.some(h => h.key === alias.lang));
+        // 只有在编辑模式下，才需要排除某些选项
+        let excludedIds = [];
+        if (this.currentEditingTagId) {
+            // 获取当前正在编辑的标签及其所有子孙的ID
+            excludedIds = this.getDescendantIds(this.currentEditingTagId);
+        }
 
-            // 填充基础语言别名
-            tag.aliases.forEach(alias => {
-                if (this.baseHeaders.some(h => h.key === alias.lang)) {
-                    row.aliases.set(alias.lang, { id: alias.id, name: alias.name });
+        const renderOptions = (nodes, indent = 0) => {
+            nodes.forEach(node => {
+                // 如果当前节点在排除列表中，则直接跳过，不渲染此选项
+                if (excludedIds.includes(node.id)) {
+                    return;
+                }
+                optionsHtml += `<option value="${node.id}">${'　'.repeat(indent)}${this.getNodeDisplayName(node)}</option>`;
+                if (node.children) {
+                    renderOptions(node.children, indent + 1);
                 }
             });
+        };
 
-            // 填充动态“别称”
-            dynamicAliases.forEach((alias, index) => {
-                row.aliases.set(`alias${index + 1}`, { id: alias.id, name: alias.name, originalLang: alias.lang });
-            });
-
-            return row;
-        });
+        renderOptions(this.tagsTree);
+        this.parentSelector.innerHTML = optionsHtml;
     }
 
-    /**
-     * 根据当前状态统一渲染整个页面
-     */
-    render() {
-        this.renderInputs();
-        this.renderTableHeaders();
-        this.renderTableBody();
-    }
-
-    renderInputs() {
-        const allHeaders = this.getFullHeaders();
-        const html = allHeaders.map(header => `
-            <div class="input-field-group">
-                <label for="input-${header.key}">${header.title}</label>
-                <input type="text" id="input-${header.key}" data-lang="${header.key}" placeholder="${header.title}...">
-            </div>
-        `).join('');
-
-        this.inputFieldsContainer.innerHTML = html;
-        // this.inputFieldsContainer.style.gridTemplateColumns = `repeat(${allHeaders.length}, 1fr)`;
-    }
-
-    renderTableHeaders() {
-        const allHeaders = this.getFullHeaders();
-        const headerHtml = allHeaders.map((header, index) => {
-            let th = `<th data-lang="${header.key}">${header.title}`;
-            // 只在最后一个表头上显示“添加列”按钮
-            if (index === allHeaders.length - 1) {
-                th += `<button class="add-column-btn" title="添加别称列"><i class="fa-solid fa-plus"></i></button>`;
-            }
-            th += `</th>`;
-            return th;
-        }).join('');
-
-        this.tableHead.innerHTML = `<tr>${headerHtml}<th>操作</th></tr>`;
-
-        // 渲染后立即绑定事件
-        const addBtn = this.tableHead.querySelector('.add-column-btn');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => {
-                this.dynamicAliasCount++;
-                this.render(); // 增加一列后，重新渲染所有部分
-            });
-        }
-    }
-
-    renderTableBody() {
-        if (this.tableData.length === 0) {
-            this.tableBody.innerHTML = `<tr><td colspan="100%">数据库为空，请在上方添加新标签</td></tr>`;
+    renderTree() {
+        if (this.tagsTree.length === 0) {
+            this.treeContainer.innerHTML = '<p>暂无标签，请在上方添加一个新标签。</p>';
             return;
         }
+        this.treeContainer.innerHTML = `<ul>${this.renderTreeNodes(this.tagsTree)}</ul>`;
+    }
 
-        const allHeaders = this.getFullHeaders();
-        const bodyHtml = this.tableData.map(row => {
-            const cellsHtml = allHeaders.map(header => {
-                const alias = row.aliases.get(header.key);
-                if (alias) {
-                    return `<td data-alias-id="${alias.id}" data-lang="${header.key}" contenteditable="true">${alias.name}</td>`;
-                } else {
-                    return `<td class="empty-cell" data-lang="${header.key}" contenteditable="true"></td>`;
-                }
-            }).join('');
+    renderTreeNodes(nodes) {
+        return nodes.map(node => {
+            const hasChildren = node.children && node.children.length > 0;
             return `
-                <tr data-tag-id="${row.tagId}">
-                    ${cellsHtml}
-                    <td><button class="delete-row-btn" title="删除此标签"><i class="fa-solid fa-trash"></i></button></td>
-                </tr>
-            `;
+                <li data-tag-id="${node.id}">
+                    <div class="tree-item ${this.currentEditingTagId === node.id ? 'selected' : ''}">
+                        <span class="tree-indent">
+                            ${hasChildren ? `<button class="tree-toggle"><i class="fa-solid fa-chevron-right"></i></button>` : ''}
+                        </span>
+                        <div class="tree-content">
+                            <span class="tree-label">${this.getNodeDisplayName(node)}</span>
+                            <span class="tree-info">(${node.primary_name_en})</span>
+                        </div>
+                        <div class="tree-actions">
+                            <button class="tree-action-btn add-child" title="添加子标签"><i class="fa-solid fa-plus"></i></button>
+                            <button class="tree-action-btn edit" title="编辑"><i class="fa-solid fa-edit"></i></button>
+                            <button class="tree-action-btn delete" title="删除"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    ${hasChildren ? `<ul class="tree-children collapsed">${this.renderTreeNodes(node.children)}</ul>` : ''}
+                </li>`;
         }).join('');
-        this.tableBody.innerHTML = bodyHtml;
     }
 
-    // --- 事件处理逻辑 ---
+    // --- [重要修改] 事件处理 ---
+    handleTreeInteraction(e) {
+        const listItem = e.target.closest('li[data-tag-id]');
+        if (!listItem) return;
+        const tagId = parseInt(listItem.dataset.tagId, 10);
 
-    handleTableClick(e) {
-        const target = e.target;
-        const row = target.closest('tr');
-        if (!row) return;
+        const button = e.target.closest('button');
 
-        // 点击删除按钮
-        if (target.closest('.delete-row-btn')) {
-            this.deleteTag(row.dataset.tagId);
-            return;
-        }
-
-        // 点击可编辑单元格
-        if (target.tagName === 'TD' && target.isContentEditable) {
-            target.focus();
-            this.handleCellEdit(target);
-        } else {
-            // 点击行内其他地方，用该行数据填充顶部输入框
-            this.populateInputsFromRow(row.dataset.tagId);
-        }
-    }
-
-    handleCellEdit(cell) {
-        if (this.editingCell === cell) return;
-        this.editingCell = cell;
-
-        const originalValue = cell.textContent; // 记录原始值
-
-        const onBlur = () => {
-            // 移除监听，防止内存泄漏
-            cell.removeEventListener('blur', onBlur);
-            cell.removeEventListener('keydown', onKeydown);
-            this.saveCell(cell, originalValue);
-            this.editingCell = null;
-        };
-
-        const onKeydown = (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                cell.blur(); // 触发 blur 事件来保存
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                cell.textContent = originalValue; // 恢复原值
-                cell.blur();
+        if (button) { // 如果点击的是按钮
+            if (button.classList.contains('tree-toggle')) {
+                listItem.querySelector('.tree-children')?.classList.toggle('collapsed');
+                button.classList.toggle('expanded');
+            } else if (button.classList.contains('add-child')) {
+                this.setParentSelection(tagId);
+                this.form.scrollIntoView({ behavior: 'smooth' });
+            } else if (button.classList.contains('edit')) {
+                this.enterEditMode(tagId);
+            } else if (button.classList.contains('delete')) {
+                this.showDeleteModal(tagId);
             }
-        };
-
-        cell.addEventListener('blur', onBlur);
-        cell.addEventListener('keydown', onKeydown);
+        } else if (e.target.closest('.tree-item')) { // 如果点击的是行本身 (但不是按钮)
+            this.enterEditMode(tagId);
+        }
     }
+
 
     async handleFormSubmit(e) {
         e.preventDefault();
-        const inputs = this.inputFieldsContainer.querySelectorAll('input');
-        const aliases = [];
+        const { primary_name_en, aliases, parent_id } = this.collectFormData();
 
-        inputs.forEach(input => {
-            const name = input.value.trim();
-            if (name) {
-                // 对于动态别称列，我们统一使用 'nickname' 作为 lang，后端可以自行处理
-                const lang = this.baseHeaders.some(h => h.key === input.dataset.lang) ? input.dataset.lang : 'nickname';
-                aliases.push({ name, lang });
+        if (!aliases.some(a => a.lang === 'zh' && a.name)) {
+            alert('请至少填写中文名称'); return;
+        }
+        if (!aliases.some(a => a.lang === 'en' && a.name)) {
+            alert('请至少填写英文名称'); return;
+        }
+
+        const method = this.currentEditingTagId ? 'PUT' : 'POST';
+        const url = this.currentEditingTagId ? `${this.API_BASE_URL}/tags/${this.currentEditingTagId}` : `${this.API_BASE_URL}/tags`;
+
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ primary_name_en, aliases, parent_id })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || '未知错误');
+            }
+            alert(`标签${this.currentEditingTagId ? '更新' : '创建'}成功`);
+            this.cancelEditMode();
+            await this.loadAndRenderAll();
+        } catch (error) {
+            alert(`保存失败: ${error.message}`);
+        }
+    }
+
+    // --- 状态管理 ---
+    enterEditMode(tagId) {
+        const tag = this.flatTags.get(tagId);
+        if (!tag) return;
+
+        this.currentEditingTagId = tagId;
+        this.clearInputs();
+        this.renderParentSelector(); // 重新渲染父选择器以排除当前标签及其子孙
+
+        // 填充表单
+        tag.aliases.forEach(alias => {
+            if (this.baseFields.some(f => f.key === alias.lang)) {
+                const input = document.getElementById(`input-${alias.lang}`);
+                if (input) input.value = alias.name;
+            } else if (alias.lang.startsWith('nickname')) { // 填充到空的别称框
+                for (let i = 1; i <= this.aliasCount; i++) {
+                    const aliasInput = document.getElementById(`input-alias${i}`);
+                    if (aliasInput && !aliasInput.value) {
+                        aliasInput.value = alias.name;
+                        break;
+                    }
+                }
             }
         });
+        this.setParentSelection(tag.parent_id);
 
-        if (aliases.length === 0) {
-            alert('请至少填写一个标签名称！');
-            return;
-        }
+        // 更新UI
+        this.formTitle.textContent = `编辑标签：${this.getNodeDisplayName(tag)}`;
+        this.submitText.textContent = '更新标签';
+        this.cancelEditBtn.style.display = 'inline-flex';
 
-        const enInput = document.getElementById('input-en');
-        const primaryNameEn = (enInput && enInput.value.trim())
-            ? enInput.value.trim().toLowerCase().replace(/\s+/g, '_')
-            : aliases[0].name.toLowerCase().replace(/\s+/g, '_');
+        // 更新高亮
+        document.querySelectorAll('.tree-item.selected').forEach(el => el.classList.remove('selected'));
+        const currentItem = this.treeContainer.querySelector(`li[data-tag-id='${tagId}'] .tree-item`);
+        if (currentItem) currentItem.classList.add('selected');
 
-        try {
-            await this.apiCall('/tags', 'POST', { primary_name_en: primaryNameEn, aliases });
-            alert('新标签及所有别名已成功保存！');
-            this.clearInputs();
-            await this.fetchAndRender(); // 成功后刷新整个表格
-        } catch (error) {
-            alert(`保存失败: ${error.message}`);
-        }
+        this.form.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // --- API 调用与辅助函数 ---
-
-    async saveCell(cell, originalValue) {
-        const newValue = cell.textContent.trim();
-        if (newValue === originalValue) return; // 值未改变，不执行任何操作
-
-        const row = cell.closest('tr');
-        const tagId = row.dataset.tagId;
-        const aliasId = cell.dataset.aliasId;
-        let lang = cell.dataset.lang;
-        // 如果是动态别称列，统一用'nickname'
-        if (lang.startsWith('alias')) {
-            lang = 'nickname';
-        }
-
-        try {
-            if (aliasId && newValue) { // 更新
-                await this.apiCall(`/aliases/${aliasId}`, 'PUT', { name: newValue, lang });
-            } else if (aliasId && !newValue) { // 删除
-                await this.apiCall(`/aliases/${aliasId}`, 'DELETE');
-            } else if (!aliasId && newValue) { // 新增
-                await this.apiCall('/aliases', 'POST', { tag_id: tagId, name: newValue, lang });
-            }
-            await this.fetchAndRender(); // 操作成功后刷新
-        } catch (error) {
-            alert(`保存失败: ${error.message}`);
-            cell.textContent = originalValue; // 失败时恢复原值
-        }
-    }
-
-    async deleteTag(tagId) {
-        if (!confirm('确定要删除这个标签及其所有别名吗？此操作不可逆！')) return;
-        try {
-            await this.apiCall(`/tags/${tagId}`, 'DELETE');
-            await this.fetchAndRender();
-        } catch (error) {
-            alert(`删除失败: ${error.message}`);
-        }
-    }
-
-    populateInputsFromRow(tagId) {
+    cancelEditMode() {
+        this.currentEditingTagId = null;
         this.clearInputs();
-        const rowData = this.tableData.find(row => row.tagId == tagId);
-        if (!rowData) return;
+        this.clearParentSelection();
+        this.formTitle.textContent = '添加新标签';
+        this.submitText.textContent = '保存到数据库';
+        this.cancelEditBtn.style.display = 'none';
 
-        for (const [key, alias] of rowData.aliases.entries()) {
-            const input = document.getElementById(`input-${key}`);
-            if (input) {
-                input.value = alias.name;
-            }
+        // 移除所有高亮
+        document.querySelectorAll('.tree-item.selected').forEach(el => el.classList.remove('selected'));
+        this.renderParentSelector(); // 恢复完整的父选择器
+    }
+
+    // --- 数据收集与处理 ---
+    collectFormData() {
+        const aliases = [];
+        this.baseFields.forEach(field => {
+            const value = document.getElementById(`input-${field.key}`).value.trim();
+            if (value) aliases.push({ name: value, lang: field.key });
+        });
+        for (let i = 1; i <= this.aliasCount; i++) {
+            const value = document.getElementById(`input-alias${i}`).value.trim();
+            if (value) aliases.push({ name: value, lang: 'nickname' });
         }
+        const enAlias = aliases.find(a => a.lang === 'en');
+        const primary_name_en = enAlias ? enAlias.name.toLowerCase().replace(/[^a-z0-9_]+/g, '_') : Date.now().toString();
+
+        return {
+            primary_name_en,
+            aliases,
+            parent_id: this.parentSelector.value || null
+        };
+    }
+
+    // --- 辅助函数 ---
+    getNodeDisplayName(node) {
+        if (!node || !node.aliases) return node?.primary_name_en || '未知标签';
+        const zhAlias = node.aliases.find(a => a.lang === 'zh');
+        return zhAlias ? zhAlias.name : node.primary_name_en;
+    }
+
+    getTagPath(startTagId) {
+        const path = [];
+        let currentTag = this.flatTags.get(startTagId);
+        while (currentTag) {
+            path.unshift(currentTag);
+            currentTag = this.flatTags.get(currentTag.parent_id);
+        }
+        return path;
+    }
+
+    setParentSelection(parentId) {
+        this.parentSelector.value = parentId || '';
+    }
+
+    clearParentSelection() {
+        this.parentSelector.value = '';
     }
 
     clearInputs() {
         this.form.reset();
     }
 
-    getFullHeaders() {
-        const dynamicHeaders = Array.from({ length: this.dynamicAliasCount }, (_, i) => ({
-            key: `alias${i + 1}`,
-            title: `别称 ${i + 1}`
-        }));
-        return [...this.baseHeaders, ...dynamicHeaders];
+    toggleAll(expand) {
+        this.treeContainer.querySelectorAll('.tree-children').forEach(el => el.classList.toggle('collapsed', !expand));
+        this.treeContainer.querySelectorAll('.tree-toggle').forEach(el => el.classList.toggle('expanded', expand));
     }
 
-    showLoading(isLoading) {
-        this.loadingIndicator.classList.toggle('hidden', !isLoading);
-        this.tableBody.classList.toggle('hidden', isLoading);
+    showLoading(show) {
+        this.loadingIndicator.classList.toggle('hidden', !show);
     }
 
-    async apiCall(endpoint, method, body = null) {
-        const options = {
-            method,
-            headers: { 'Content-Type': 'application/json' }
-        };
-        if (body) {
-            options.body = JSON.stringify(body);
+    showDeleteModal(tagId) {
+        const tag = this.flatTags.get(tagId);
+        if (!tag) return;
+        this.tagToDelete = tag;
+        this.deleteTagNameSpan.textContent = this.getNodeDisplayName(tag);
+        this.childrenWarning.style.display = (tag.children && tag.children.length > 0) ? 'block' : 'none';
+        this.deleteModal.classList.add('show');
+    }
+
+    hideDeleteModal() {
+        this.deleteModal.classList.remove('show');
+        this.tagToDelete = null;
+    }
+
+    async confirmDelete() {
+        if (!this.tagToDelete) return;
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/tags/${this.tagToDelete.id}`, { method: 'DELETE' });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || '未知错误');
+            }
+            alert('标签删除成功');
+            this.hideDeleteModal();
+            await this.loadAndRenderAll();
+        } catch (error) {
+            alert(`删除失败: ${error.message}`);
         }
-        const response = await fetch(`${this.API_BASE_URL}${endpoint}`, options);
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'API请求失败');
-        }
-        return response.json();
     }
 }
 
+// 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
-    new TagEditor().init();
+    new HierarchicalTagsManager().init();
 });
