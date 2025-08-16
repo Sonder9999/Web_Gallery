@@ -62,15 +62,29 @@ async function generateFilenameFromTags(connection, tagNames, originalExtension)
     if (tagNames && tagNames.length > 0) {
         for (const tagName of tagNames) {
             const [aliasRows] = await connection.execute('SELECT tag_id FROM tag_aliases WHERE name = ?', [tagName]);
+
             if (aliasRows.length > 0) {
                 const tagId = aliasRows[0].tag_id;
-                const [translateRows] = await connection.execute('SELECT name FROM tag_aliases WHERE tag_id = ? AND lang = ?', [tagId, FILENAME_LANGUAGE]);
+                const [translateRows] = await connection.execute(
+                    'SELECT name FROM tag_aliases WHERE tag_id = ? AND lang = ?',
+                    [tagId, FILENAME_LANGUAGE]
+                );
+
                 if (translateRows.length > 0) {
                     nameParts.push(translateRows[0].name);
+                } else {
+                    // 如果没有英文别名，使用原始标签名
+                    nameParts.push(tagName.toLowerCase().replace(/\s+/g, '_'));
                 }
+            } else {
+                // 如果标签不存在于数据库中，直接使用原始名称
+                nameParts.push(tagName.toLowerCase().replace(/\s+/g, '_'));
             }
         }
     }
+
+    // 按 a-z 排序
+    // nameParts.sort((a, b) => a.localeCompare(b));
 
     let baseName = nameParts.map(part => part.toLowerCase().replace(/\s+/g, '_')).join('_');
     if (!baseName) {
