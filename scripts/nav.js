@@ -90,7 +90,7 @@ class Navigation {
         console.log('导航到:', path);
         // TODO: 实现客户端路由或页面跳转
         // 简单实现：
-        // window.location.href = path;
+        window.location.href = path;
     }
 
     handleResponsive() {
