@@ -67,10 +67,10 @@ class Gallery {
             if (!response.ok) throw new Error('网络请求失败');
             const images = await response.json();
 
-            this.originalImages = [...images]; // [修改] 保存一份原始数据
+            this.originalImages = [...images]; // 保存一份原始数据
+            this.currentSourceImages = [...this.originalImages]; // 初始数据源是所有图片
 
-            // 使用新方法来更新画廊
-            this.updateWithNewImages(this.shuffleArray(images));
+            this.updateWithNewImages(this.shuffleArray(this.currentSourceImages));
 
         } catch (error) {
             console.error("加载图片数据失败:", error);
@@ -82,20 +82,19 @@ class Gallery {
     }
 
     /**
-     * [新增] 用一组新的图片数据来更新整个画廊
-     * @param {Array} newImages - 新的图片对象数组
+     * [核心修改] 更新画廊内容，现在可以接收一个可选的 newSource
      */
-    updateWithNewImages(newImages) {
-        // 1. 清空当前状态和显示内容
+    updateWithNewImages(newImageList, newSource = null) {
+        // 如果提供了新的数据源 (来自搜索), 则更新 currentSourceImages
+        if (newSource) {
+            this.currentSourceImages = newSource;
+        }
+
         document.getElementById('gallery-grid').innerHTML = '';
-        this.allImages = [];
+        this.allImages = newImageList; // allImages 是当前要显示的列表（可能已被筛选）
         this.displayedImages = [];
         this.currentPage = 0;
 
-        // 2. 加载新的图片数据
-        this.allImages = newImages;
-
-        // 3. 开始渲染第一批
         this.loadNextBatch();
     }
 

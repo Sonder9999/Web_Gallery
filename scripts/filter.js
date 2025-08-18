@@ -1,4 +1,4 @@
-// scripts/filters.js - Gallery filtering functionality
+// scripts/filters.js - (已更新)
 
 class FilterManager {
     constructor(galleryInstance) {
@@ -8,7 +8,9 @@ class FilterManager {
             resolution: {
                 width: null,
                 height: null,
-                mode: 'at-least' // 'at-least', 'exact', 'less-than'
+                mode: 'at-least', // 'at-least', 'exact', 'less-than'
+                isFuzzy: false,
+                fuzzyValue: null
             },
             ratio: {
                 value: null, // e.g., 1.777
@@ -20,8 +22,11 @@ class FilterManager {
             widthInput: document.getElementById('filter-width'),
             heightInput: document.getElementById('filter-height'),
             resolutionModeBtn: document.getElementById('resolution-mode-btn'),
-            ratioButtons: document.querySelectorAll('.ratio-btn'),
-            fuzzyToggle: document.getElementById('fuzzy-toggle'),
+            resolutionFuzzyToggle: document.getElementById('resolution-fuzzy-toggle'),
+            resolutionFuzzyContainer: document.getElementById('resolution-fuzzy-container'),
+            resolutionFuzzyInput: document.getElementById('resolution-fuzzy-input'),
+            ratioInput: document.getElementById('ratio-input'),
+            ratioFuzzyToggle: document.getElementById('ratio-fuzzy-toggle'),
             clearBtn: document.getElementById('clear-filters-btn')
         };
 
@@ -36,160 +41,175 @@ class FilterManager {
     }
 
     bindEvents() {
-        // Resolution filtering
-        this.dom.widthInput.addEventListener('input', () => this.handleResolutionChange());
-        this.dom.heightInput.addEventListener('input', () => this.handleResolutionChange());
-        this.dom.resolutionModeBtn.addEventListener('click', () => this.toggleResolutionMode());
+        // Debounce applyFilters to avoid excessive calls on input
+        this.debouncedApplyFilters = this.debounce(() => this.applyFilters(), 300);
 
-        // Ratio filtering
-        this.dom.ratioButtons.forEach(btn => {
-            btn.addEventListener('click', () => this.handleRatioChange(btn));
+        // Resolution
+        this.dom.widthInput.addEventListener('input', this.debouncedApplyFilters);
+        this.dom.heightInput.addEventListener('input', this.debouncedApplyFilters);
+        this.dom.resolutionModeBtn.addEventListener('click', () => {
+            this.toggleResolutionMode();
+            this.applyFilters();
         });
-        this.dom.fuzzyToggle.addEventListener('change', () => this.handleFuzzyToggle());
+        this.dom.resolutionFuzzyToggle.addEventListener('change', () => this.handleResolutionFuzzyToggle());
+        this.dom.resolutionFuzzyInput.addEventListener('input', this.debouncedApplyFilters);
 
-        // Clear button
+        // Ratio
+        this.dom.ratioInput.addEventListener('input', this.debouncedApplyFilters);
+        this.dom.ratioFuzzyToggle.addEventListener('change', () => this.applyFilters());
+
+        // Clear
         this.dom.clearBtn.addEventListener('click', () => this.clearAllFilters());
     }
 
-    handleResolutionChange() {
-        const width = parseInt(this.dom.widthInput.value, 10);
-        const height = parseInt(this.dom.heightInput.value, 10);
+    updateFilterState() {
+        // Resolution
+        const res = this.filters.resolution;
+        res.width = this.parseInput(this.dom.widthInput.value);
+        res.height = this.parseInput(this.dom.heightInput.value);
+        res.isFuzzy = this.dom.resolutionFuzzyToggle.checked;
+        res.fuzzyValue = res.isFuzzy ? this.parseInput(this.dom.resolutionFuzzyInput.value) : null;
 
-        this.filters.resolution.width = isNaN(width) || width <= 0 ? null : width;
-        this.filters.resolution.height = isNaN(height) || height <= 0 ? null : height;
-
-        this.applyFilters();
+        // Ratio
+        const ratio = this.filters.ratio;
+        const ratioText = this.dom.ratioInput.value.trim();
+        if (ratioText.includes(':')) {
+            const parts = ratioText.split(':').map(Number);
+            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[1] > 0) {
+                ratio.value = parts[0] / parts[1];
+            } else {
+                ratio.value = null;
+            }
+        } else if (!isNaN(parseFloat(ratioText))) {
+            ratio.value = parseFloat(ratioText);
+        } else {
+            ratio.value = null;
+        }
+        ratio.isFuzzy = this.dom.ratioFuzzyToggle.checked;
     }
+
+    applyFilters() {
+        this.updateFilterState();
+        this.updateClearButtonVisibility();
+
+        // [核心修改] 始终从当前的数据源进行筛选
+        const sourceImages = [...this.gallery.currentSourceImages];
+
+        const filteredImages = sourceImages.filter(image => {
+            // Resolution Check
+            if (!this.checkResolution(image)) return false;
+
+            // Aspect Ratio Check
+            if (!this.checkRatio(image)) return false;
+
+            return true;
+        });
+
+        this.gallery.updateWithNewImages(filteredImages);
+    }
+
+    checkResolution(image) {
+        const res = this.filters.resolution;
+        if (!res.width && !res.height) return true; // No filter applied
+
+        const check = (dim, target, fuzzy) => {
+            if (target === null) return true; // Skip check if dimension not specified
+            const tolerance = res.isFuzzy && fuzzy ? fuzzy : 0;
+            const min = target - tolerance;
+            const max = target + tolerance;
+
+            if (res.mode === 'at-least') return dim >= min;
+            if (res.mode === 'less-than') return dim <= max;
+            if (res.mode === 'exact') return dim >= min && dim <= max;
+            return true;
+        };
+
+        return check(image.width, res.width, res.fuzzyValue) && check(image.height, res.height, res.fuzzyValue);
+    }
+
+    checkRatio(image) {
+        const ratioFilter = this.filters.ratio;
+        if (ratioFilter.value === null) return true; // No filter
+
+        const targetRatio = ratioFilter.value;
+        const imageRatio = image.width / image.height;
+
+        if (ratioFilter.isFuzzy) {
+            const tolerance = 0.5;
+            return Math.abs(imageRatio - targetRatio) <= tolerance;
+        } else {
+            const precision = 0.02;
+            return Math.abs(imageRatio - targetRatio) <= precision;
+        }
+    }
+
+    // --- UI and Helper Functions ---
 
     toggleResolutionMode() {
         const currentModeIndex = this.resolutionModes.indexOf(this.filters.resolution.mode);
         const nextModeIndex = (currentModeIndex + 1) % this.resolutionModes.length;
         this.filters.resolution.mode = this.resolutionModes[nextModeIndex];
 
-        // Update icon
         const icon = this.dom.resolutionModeBtn.querySelector('i');
         icon.className = `fa-solid ${this.resolutionIcons[this.filters.resolution.mode]}`;
-
-        // Add a little animation
-        this.dom.resolutionModeBtn.classList.add('active');
-        icon.style.transform = 'rotate(360deg)';
-        setTimeout(() => {
-            this.dom.resolutionModeBtn.classList.remove('active');
-            icon.style.transform = 'rotate(0deg)';
-        }, 300);
-
-        this.applyFilters();
+        this.dom.resolutionModeBtn.title = `切换匹配模式 (${this.filters.resolution.mode})`;
     }
 
-    handleRatioChange(clickedBtn) {
-        // Remove active class from all buttons
-        this.dom.ratioButtons.forEach(btn => btn.classList.remove('active'));
-
-        const ratioValue = clickedBtn.dataset.ratio;
-
-        // If the clicked button was already active, deactivate it
-        if (this.filters.ratio.value === ratioValue) {
-            this.filters.ratio.value = null;
-        } else {
-            this.filters.ratio.value = ratioValue;
-            clickedBtn.classList.add('active');
-        }
-
-        this.applyFilters();
-    }
-
-    handleFuzzyToggle() {
-        this.filters.ratio.isFuzzy = this.dom.fuzzyToggle.checked;
+    handleResolutionFuzzyToggle() {
+        this.dom.resolutionFuzzyContainer.classList.toggle('visible', this.dom.resolutionFuzzyToggle.checked);
         this.applyFilters();
     }
 
     clearAllFilters() {
         // Reset state
-        this.filters.resolution = { width: null, height: null, mode: 'at-least' };
-        this.filters.ratio = { value: null, isFuzzy: false };
-
+        this.filters = {
+            resolution: { width: null, height: null, mode: 'at-least', isFuzzy: false, fuzzyValue: null },
+            ratio: { value: null, isFuzzy: false }
+        };
         // Reset UI
         this.dom.widthInput.value = '';
         this.dom.heightInput.value = '';
-        const icon = this.dom.resolutionModeBtn.querySelector('i');
-        icon.className = `fa-solid ${this.resolutionIcons['at-least']}`;
-        this.dom.ratioButtons.forEach(btn => btn.classList.remove('active'));
-        this.dom.fuzzyToggle.checked = false;
+        this.dom.resolutionModeBtn.querySelector('i').className = `fa-solid ${this.resolutionIcons['at-least']}`;
+        this.dom.resolutionFuzzyToggle.checked = false;
+        this.dom.resolutionFuzzyContainer.classList.remove('visible');
+        this.dom.resolutionFuzzyInput.value = '';
+        this.dom.ratioInput.value = '';
+        this.dom.ratioFuzzyToggle.checked = false;
 
-        // Re-load all images from the gallery's original set
-        this.gallery.updateWithNewImages(this.gallery.originalImages);
-        this.updateClearButtonVisibility();
-    }
-
-
-    applyFilters() {
-        this.updateClearButtonVisibility();
-        const allImages = [...this.gallery.originalImages]; // Always filter from the original full list
-
-        const filteredImages = allImages.filter(image => {
-            // Resolution Check
-            const res = this.filters.resolution;
-            if (res.width && res.height) {
-                if (res.mode === 'at-least' && (image.width < res.width || image.height < res.height)) {
-                    return false;
-                }
-                if (res.mode === 'less-than' && (image.width > res.width || image.height > res.height)) {
-                    return false;
-                }
-                if (res.mode === 'exact' && (image.width !== res.width || image.height !== res.height)) {
-                    return false;
-                }
-            }
-
-            // Aspect Ratio Check
-            const ratioFilter = this.filters.ratio;
-            if (ratioFilter.value) {
-                const targetRatio = parseFloat(ratioFilter.value);
-                const imageRatio = image.width / image.height;
-
-                if (ratioFilter.isFuzzy) {
-                    const tolerance = 0.5; // e.g. 3:1 matches 2.5 to 3.5
-                    if (Math.abs(imageRatio - targetRatio) > tolerance) {
-                        return false;
-                    }
-                } else {
-                    // For exact match, allow a small tolerance for floating point inaccuracies
-                    const precision = 0.02;
-                    if (Math.abs(imageRatio - targetRatio) > precision) {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        });
-
-        // Update gallery with filtered results
-        this.gallery.updateWithNewImages(filteredImages);
+        // [修改] 应用筛选到当前数据源，而不是重置为所有图片
+        this.applyFilters();
     }
 
     isAnyFilterActive() {
         const res = this.filters.resolution;
         const ratio = this.filters.ratio;
-        return (res.width && res.height) || ratio.value !== null;
+        return (res.width !== null || res.height !== null) || ratio.value !== null;
     }
 
     updateClearButtonVisibility() {
-        if (this.isAnyFilterActive()) {
-            this.dom.clearBtn.classList.add('visible');
-        } else {
-            this.dom.clearBtn.classList.remove('visible');
-        }
+        this.dom.clearBtn.classList.toggle('visible', this.isAnyFilterActive());
+    }
+
+    parseInput(value) {
+        const num = parseInt(value, 10);
+        return isNaN(num) || num <= 0 ? null : num;
+    }
+
+    debounce(func, delay) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
     }
 }
 
-// Initialize when the gallery is ready
 document.addEventListener('DOMContentLoaded', () => {
     const checkGalleryReady = setInterval(() => {
         if (window.gallery) {
             clearInterval(checkGalleryReady);
             window.filterManager = new FilterManager(window.gallery);
-            console.log('筛选管理器已初始化。');
+            console.log('高级筛选管理器已初始化。');
         }
     }, 100);
 });

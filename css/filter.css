@@ -1,0 +1,220 @@
+/* css/filters.css - 高级筛选器样式 */
+
+:root {
+    --filter-bg: var(--bg-white);
+    --filter-border: var(--border-color);
+    --filter-input-bg: var(--bg-light);
+    --icon-active-color: var(--primary-color);
+}
+
+/* 筛选器容器 */
+#filter-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 0;
+    flex-wrap: wrap;
+}
+
+/* 筛选器组 */
+.filter-group {
+    display: flex;
+    align-items: center;
+    background: var(--filter-input-bg);
+    border: 1px solid var(--filter-border);
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all var(--transition-fast);
+}
+
+.filter-group:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color)20;
+}
+
+/* 输入框通用样式 */
+.filter-group input[type="number"],
+.filter-group input[type="text"] {
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+}
+
+.filter-group input::placeholder {
+    color: var(--text-light);
+    opacity: 0.8;
+}
+
+/* 分辨率筛选 */
+#resolution-filter input {
+    width: 65px;
+}
+
+#resolution-filter .separator {
+    color: var(--text-light);
+}
+
+#resolution-filter input::-webkit-outer-spin-button,
+#resolution-filter input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#resolution-filter input[type=number] {
+    -moz-appearance: textfield;
+}
+
+#resolution-mode-btn {
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--filter-border);
+    cursor: pointer;
+    color: var(--text-light);
+    transition: var(--transition-fast);
+}
+
+#resolution-mode-btn:hover {
+    color: var(--text-color);
+}
+
+#resolution-mode-btn.active {
+    color: var(--icon-active-color);
+}
+
+#resolution-mode-btn i {
+    width: 16px;
+    transition: transform 0.3s ease;
+}
+
+/* 分辨率模糊匹配 */
+#resolution-fuzzy-container {
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    transition: all 0.4s ease;
+    display: flex;
+    align-items: center;
+    padding-left: 5px;
+}
+
+#resolution-fuzzy-container.visible {
+    max-width: 100px;
+    /* 足够容纳输入框 */
+    opacity: 1;
+}
+
+#resolution-fuzzy-container span {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+#resolution-fuzzy-container input {
+    width: 50px;
+    border-left: 1px solid var(--filter-border);
+}
+
+
+/* 比例筛选 */
+#ratio-filter input {
+    width: 80px;
+    border-right: 1px solid var(--filter-border);
+}
+
+/* 通用模糊匹配开关 */
+.fuzzy-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.fuzzy-toggle .toggle-label {
+    font-size: 12px;
+    color: var(--text-light);
+    user-select: none;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--border-color);
+    border-radius: 10px;
+    transition: background-color var(--transition-fast);
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 2px;
+    left: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+}
+
+.fuzzy-toggle input:checked+.toggle-switch {
+    background-color: var(--primary-color);
+}
+
+.fuzzy-toggle input:checked+.toggle-switch::before {
+    transform: translateX(16px);
+}
+
+.fuzzy-toggle input {
+    display: none;
+}
+
+/* 清除筛选按钮 */
+#clear-filters-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    visibility: hidden;
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+#clear-filters-btn.visible {
+    visibility: visible;
+    opacity: 1;
+    transform: scale(1);
+}
+
+#clear-filters-btn:hover {
+    background: var(--border-color);
+    color: var(--text-color);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    #filter-controls {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-group {
+        width: 90%;
+        justify-content: center;
+    }
+}

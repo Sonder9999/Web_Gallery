@@ -101,30 +101,35 @@
                 </button>
             </div>
 
-            <div id="filter-controls">
-                <div id="resolution-filter" class="filter-group">
-                    <input type="number" id="filter-width" placeholder="宽度">
-                    <span class="separator">&times;</span>
-                    <input type="number" id="filter-height" placeholder="高度">
-                    <button id="resolution-mode-btn" title="切换匹配模式">
-                        <i class="fa-solid fa-greater-than-equal"></i>
+                <div id="filter-controls">
+                    <div id="resolution-filter" class="filter-group">
+                        <input type="number" id="filter-width" placeholder="宽度">
+                        <span class="separator">&times;</span>
+                        <input type="number" id="filter-height" placeholder="高度">
+                        <button id="resolution-mode-btn" title="切换匹配模式 (大于等于)">
+                            <i class="fa-solid fa-greater-than-equal"></i>
+                        </button>
+                        <label class="fuzzy-toggle">
+                            <input type="checkbox" id="resolution-fuzzy-toggle">
+                            <span class="toggle-switch"></span>
+                        </label>
+                        <div id="resolution-fuzzy-container">
+                            <span>&plusmn;</span>
+                            <input type="number" id="resolution-fuzzy-input" placeholder="误差">
+                        </div>
+                    </div>
+                    <div id="ratio-filter" class="filter-group">
+                        <input type="text" id="ratio-input" placeholder="e.g., 16:9">
+                        <label class="fuzzy-toggle">
+                            <input type="checkbox" id="ratio-fuzzy-toggle">
+                            <span class="toggle-switch"></span>
+                            <span class="toggle-label">模糊</span>
+                        </label>
+                    </div>
+                    <button id="clear-filters-btn" title="清除所有筛选">
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-                <div id="ratio-filter" class="filter-group">
-                    <button class="ratio-btn" data-ratio="1.777">16:9</button>
-                    <button class="ratio-btn" data-ratio="2.333">21:9</button>
-                    <button class="ratio-btn" data-ratio="0.5625">9:16</button>
-                    <button class="ratio-btn" data-ratio="1">1:1</button>
-                    <label class="fuzzy-toggle">
-                        <input type="checkbox" id="fuzzy-toggle">
-                        <span class="toggle-switch"></span>
-                        <span class="toggle-label">模糊</span>
-                    </label>
-                </div>
-                <button id="clear-filters-btn" title="清除所有筛选">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
 
             <div class="stats">
                 已加载 <span id="loaded-count">0</span> 张图片
