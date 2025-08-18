@@ -1,6 +1,6 @@
 // scripts/        // 显示设置状态
-        // 主开关设置 - 在代码中控制是否允许用户修改设置
-        this.allowUserSettings = true; // 设为false可禁用用户设置面板画廊显示和设置管理
+// 主开关设置 - 在代码中控制是否允许用户修改设置
+this.allowUserSettings = true; // 设为false可禁用用户设置面板画廊显示和设置管理
 
 class Gallery {
     constructor() {
@@ -66,11 +66,8 @@ class Gallery {
             if (!response.ok) throw new Error('网络请求失败');
             const images = await response.json();
 
-            // 将获取到的图片数据随机打乱
-            this.allImages = this.shuffleArray(images);
-
-            // 加载第一批图片
-            this.loadNextBatch();
+            // 使用新方法来更新画廊
+            this.updateWithNewImages(this.shuffleArray(images));
 
         } catch (error) {
             console.error("加载图片数据失败:", error);
@@ -79,6 +76,24 @@ class Gallery {
         } finally {
             this.showLoading(false);
         }
+    }
+
+    /**
+     * [新增] 用一组新的图片数据来更新整个画廊
+     * @param {Array} newImages - 新的图片对象数组
+     */
+    updateWithNewImages(newImages) {
+        // 1. 清空当前状态和显示内容
+        document.getElementById('gallery-grid').innerHTML = '';
+        this.allImages = [];
+        this.displayedImages = [];
+        this.currentPage = 0;
+
+        // 2. 加载新的图片数据
+        this.allImages = newImages;
+
+        // 3. 开始渲染第一批
+        this.loadNextBatch();
     }
 
     bindEvents() {
@@ -94,6 +109,7 @@ class Gallery {
      */
     async loadNextBatch() {
         if (this.isLoading || this.currentPage * this.batchSize >= this.allImages.length) {
+            this.updateLoadMoreButton(); // 确保在没有更多图片时更新按钮状态
             return; // 如果正在加载或所有图片已加载完毕，则不执行
         }
 
@@ -156,8 +172,7 @@ class Gallery {
                     <span class="info-ratio" style="display: ${this.displaySettings.gallery.ratio ? 'inline' : 'none'}">${ratio}</span>
                 </div>
                 <div class="info-tags" style="display: ${this.displaySettings.gallery.tags ? 'flex' : 'none'}">
-                    <!-- 标签将通过异步加载 -->
-                </div>
+                    </div>
             </div>
         `;
 
@@ -222,7 +237,9 @@ class Gallery {
 
     showLoading(show) {
         const indicator = document.getElementById('loading-indicator');
-        indicator.style.display = show ? 'flex' : 'none';
+        if (indicator) {
+            indicator.style.display = show ? 'flex' : 'none';
+        }
     }
 
     calculateAspectRatio(width, height) {

@@ -34,6 +34,50 @@ function buildTree(flatData) {
     return roots;
 }
 
+// --- 新增：处理搜索请求的路由 (GET /api/search) ---
+router.get('/search', async (req, res) => {
+    const query = req.query.q;
+    if (!query) {
+        return res.status(400).json({ message: '缺少搜索查询参数' });
+    }
+
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const searchTerm = `%${query}%`;
+
+        // SQL 查询：
+        // 1. 使用 LEFT JOIN 连接 images, image_tags, 和 tag_aliases。
+        // 2. 使用 DISTINCT(i.id) 确保每个图片只返回一次。
+        // 3. 在 WHERE 子句中同时搜索图片文件名和标签别名。
+        const [results] = await connection.execute(`
+            SELECT DISTINCT
+                i.id,
+                i.filename,
+                i.filepath,
+                i.width,
+                i.height,
+                i.aspect_ratio,
+                i.uploaded_at
+            FROM images i
+            LEFT JOIN image_tags it ON i.id = it.image_id
+            LEFT JOIN tag_aliases ta ON it.tag_id = ta.tag_id
+            WHERE
+                i.filename LIKE ? OR ta.name LIKE ?
+            ORDER BY i.uploaded_at DESC;
+        `, [searchTerm, searchTerm]);
+
+        res.json(results);
+
+    } catch (error) {
+        console.error('搜索失败:', error);
+        res.status(500).json({ message: '服务器内部错误' });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+
 // 1. 获取所有标签（树形结构）(GET /api/tags)
 router.get('/tags', async (req, res) => {
     let connection;
