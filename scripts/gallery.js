@@ -5,7 +5,8 @@ this.allowUserSettings = true; // 设为false可禁用用户设置面板画廊�
 class Gallery {
     constructor() {
         this.API_BASE_URL = 'http://localhost:3000/api'; // 定义API基础URL
-        this.allImages = [];         // 存储从API获取的所有图片对象
+        this.originalImages = [];    // [新增] 存储从API获取的原始、完整的图片列表
+        this.allImages = [];         // 存储当前用于显示和筛选的图片列表
         this.displayedImages = [];   // 存储当前已渲染到页面的图片
         this.batchSize = 20;         // 每次加载的数量
         this.currentPage = 0;        // 当前加载的页码
@@ -65,6 +66,8 @@ class Gallery {
             const response = await fetch(`${this.API_BASE_URL}/images`);
             if (!response.ok) throw new Error('网络请求失败');
             const images = await response.json();
+
+            this.originalImages = [...images]; // [修改] 保存一份原始数据
 
             // 使用新方法来更新画廊
             this.updateWithNewImages(this.shuffleArray(images));

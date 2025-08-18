@@ -1,0 +1,240 @@
+/* css/filters.css - 筛选器样式 */
+
+:root {
+    --filter-bg: var(--bg-white);
+    --filter-border: var(--border-color);
+    --filter-input-bg: var(--bg-light);
+    --icon-active-color: var(--primary-color);
+}
+
+/* 筛选器容器 */
+#filter-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 0;
+    flex-wrap: wrap;
+}
+
+/* 筛选器组 */
+.filter-group {
+    display: flex;
+    align-items: center;
+    background: var(--filter-input-bg);
+    border: 1px solid var(--filter-border);
+    border-radius: var(--border-radius);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all var(--transition-fast);
+}
+
+.filter-group:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color)20;
+}
+
+/* 分辨率筛选 */
+#resolution-filter input {
+    width: 60px;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-color);
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+}
+
+/* 隐藏number input的上下箭头 */
+#resolution-filter input::-webkit-outer-spin-button,
+#resolution-filter input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#resolution-filter input[type=number] {
+    -moz-appearance: textfield;
+}
+
+#resolution-filter .separator {
+    color: var(--text-light);
+}
+
+#resolution-mode-btn {
+    padding: 8px 10px;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--filter-border);
+    cursor: pointer;
+    color: var(--text-light);
+    transition: var(--transition-fast);
+}
+
+#resolution-mode-btn:hover {
+    color: var(--text-color);
+}
+
+#resolution-mode-btn.active {
+    color: var(--icon-active-color);
+}
+
+#resolution-mode-btn i {
+    width: 16px;
+    /* 固定宽度防止切换时抖动 */
+    transition: transform 0.3s ease;
+}
+
+/* 比例筛选 */
+#ratio-filter .ratio-btn {
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-light);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all var(--transition-fast);
+    border-right: 1px solid var(--filter-border);
+}
+
+#ratio-filter .ratio-btn:hover {
+    color: var(--text-color);
+    background: var(--border-color);
+}
+
+#ratio-filter .ratio-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+#ratio-filter .ratio-btn:first-of-type {
+    border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+/* 模糊匹配开关 */
+.fuzzy-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-left: 1px solid var(--border-color);
+}
+
+.fuzzy-toggle .toggle-label {
+    font-size: 12px;
+    color: var(--text-light);
+    user-select: none;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--border-color);
+    border-radius: 10px;
+    transition: background-color var(--transition-fast);
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 2px;
+    left: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+}
+
+.fuzzy-toggle input:checked+.toggle-switch {
+    background-color: var(--primary-color);
+}
+
+.fuzzy-toggle input:checked+.toggle-switch::before {
+    transform: translateX(16px);
+}
+
+.fuzzy-toggle input {
+    display: none;
+}
+
+
+/* 清除筛选按钮 */
+#clear-filters-btn {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    visibility: hidden;
+    /* 默认隐藏 */
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+#clear-filters-btn.visible {
+    visibility: visible;
+    opacity: 1;
+    transform: scale(1);
+}
+
+
+#clear-filters-btn:hover {
+    background: var(--border-color);
+    color: var(--text-color);
+}
+
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    #filter-controls {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-group {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    #resolution-filter,
+    #ratio-filter {
+        flex-direction: column;
+    }
+
+    #ratio-filter .ratio-btn {
+        border-right: none;
+        border-bottom: 1px solid var(--filter-border);
+        text-align: center;
+        width: 100%;
+        border-radius: 0 !important;
+    }
+
+    #ratio-filter .ratio-btn:last-of-type {
+        border-bottom: none;
+    }
+
+    .fuzzy-toggle,
+    #resolution-mode-btn {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        justify-content: center;
+    }
+
+    #resolution-filter {
+        padding: 8px;
+        gap: 8px;
+    }
+}
