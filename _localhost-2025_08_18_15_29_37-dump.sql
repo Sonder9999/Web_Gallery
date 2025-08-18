@@ -38,7 +38,7 @@ CREATE TABLE `image_tags` (
 
 LOCK TABLES `image_tags` WRITE;
 /*!40000 ALTER TABLE `image_tags` DISABLE KEYS */;
-INSERT INTO `image_tags` (`image_id`, `tag_id`) VALUES (13,18),(13,31),(12,32),(14,32),(12,33),(14,33);
+INSERT INTO `image_tags` (`image_id`, `tag_id`) VALUES (31,18),(31,31),(32,32),(33,32),(32,33),(33,33);
 /*!40000 ALTER TABLE `image_tags` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -64,7 +64,7 @@ CREATE TABLE `images` (
   UNIQUE KEY `idx_filepath` (`filepath`),
   UNIQUE KEY `idx_file_hash` (`file_hash`),
   KEY `idx_aspect_ratio` (`aspect_ratio`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='图片信息表';
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='图片信息表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -73,7 +73,7 @@ CREATE TABLE `images` (
 
 LOCK TABLES `images` WRITE;
 /*!40000 ALTER TABLE `images` DISABLE KEYS */;
-INSERT INTO `images` (`id`, `filename`, `filepath`, `filesize`, `source_url`, `file_hash`, `width`, `height`, `aspect_ratio`, `uploaded_at`) VALUES (12,'genshin_kokomi_c6cbaf.jpg','images/genshin_kokomi_c6cbaf.jpg',694407,'','07714aec8f66dc197a0651fb015f0b9940dfdef2e09d32d736ac385ee4efdab3',2000,1151,1.7376,'2025-08-16 05:25:00'),(13,'honkai3_elysia_da211f.png','images/honkai3_elysia_da211f.png',10170134,'','4602b5c85a3f305464cee3e11096b68476892dae6ba526f90831ef48a3098bd4',15360,8640,1.7778,'2025-08-16 05:25:25'),(14,'genshin_kokomi_c6ca41.jpg','images/genshin_kokomi_c6ca41.jpg',3922299,'','3e5a3d5bcb5785d93ac4fb2bb2ada8e328e2ed210aec2b3eb512e97d6116cd1b',6145,4069,1.5102,'2025-08-16 05:45:03');
+INSERT INTO `images` (`id`, `filename`, `filepath`, `filesize`, `source_url`, `file_hash`, `width`, `height`, `aspect_ratio`, `uploaded_at`) VALUES (31,'honkai3_elysia_238a73.png','images/honkai3_elysia_238a73.png',10170134,'','4602b5c85a3f305464cee3e11096b68476892dae6ba526f90831ef48a3098bd4',15360,8640,1.7778,'2025-08-17 16:16:34'),(32,'genshin_kokomi_1434fe.jpg','images/genshin_kokomi_1434fe.jpg',694407,'','07714aec8f66dc197a0651fb015f0b9940dfdef2e09d32d736ac385ee4efdab3',2000,1151,1.7376,'2025-08-18 05:45:45'),(33,'genshin_kokomi_644a90.jpg','images/genshin_kokomi_644a90.jpg',3922299,'','3e5a3d5bcb5785d93ac4fb2bb2ada8e328e2ed210aec2b3eb512e97d6116cd1b',6145,4069,1.5102,'2025-08-18 05:45:45');
 /*!40000 ALTER TABLE `images` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -117,9 +117,12 @@ CREATE TABLE `tags` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT '标签唯一ID',
   `name` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标签名称',
   `primary_name_en` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '标签的英文主名，用于程序关联',
+  `parent_id` int unsigned DEFAULT NULL COMMENT '父标签ID，形成层级关系',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_name` (`name`),
-  UNIQUE KEY `idx_primary_name_en` (`primary_name_en`)
+  UNIQUE KEY `idx_primary_name_en` (`primary_name_en`),
+  KEY `fk_parent_tag` (`parent_id`),
+  CONSTRAINT `fk_parent_tag` FOREIGN KEY (`parent_id`) REFERENCES `tags` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='标签表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -129,7 +132,7 @@ CREATE TABLE `tags` (
 
 LOCK TABLES `tags` WRITE;
 /*!40000 ALTER TABLE `tags` DISABLE KEYS */;
-INSERT INTO `tags` (`id`, `name`, `primary_name_en`) VALUES (18,'爱莉希雅','elysia'),(29,'崩坏：星穹铁道','honkai_star_rail'),(30,'流萤','firefly'),(31,'崩坏3','honkai_impact_3rd'),(32,'原神','genshin_impact'),(33,'珊瑚宫心海','sangonomiya_kokomi');
+INSERT INTO `tags` (`id`, `name`, `primary_name_en`, `parent_id`) VALUES (18,'爱莉希雅','elysia',31),(29,'崩坏：星穹铁道','honkai_star_rail',NULL),(30,'流萤','firefly',29),(31,'崩坏3','honkai_impact_3rd',NULL),(32,'原神','genshin_impact',NULL),(33,'珊瑚宫心海','sangonomiya_kokomi',32);
 /*!40000 ALTER TABLE `tags` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -142,4 +145,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-08-16 16:04:17
+-- Dump completed on 2025-08-18 15:29:37

@@ -92,9 +92,89 @@
                     <i class="fa-solid fa-plus"></i>
                     加载更多
                 </button>
+                <button id="display-settings-btn" class="control-btn secondary">
+                    <i class="fa-solid fa-gear"></i>
+                    显示设置
+                </button>
             </div>
             <div class="stats">
                 已加载 <span id="loaded-count">0</span> 张图片
+            </div>
+        </div>
+
+        <!-- 显示设置面板 -->
+        <div id="display-settings-panel" class="settings-panel hidden">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3><i class="fa-solid fa-eye"></i> 显示设置</h3>
+                    <label class="master-toggle">
+                        <input type="checkbox" id="enable-display-settings" checked>
+                        <span class="toggle-text">启用用户设置</span>
+                    </label>
+                </div>
+
+                <div id="user-settings-container">
+                    <div class="settings-section">
+                        <h4>图片卡片显示</h4>
+                        <div class="settings-options">
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-name" checked>
+                                <span>显示文件名</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-path" checked>
+                                <span>显示路径</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-size" checked>
+                                <span>显示尺寸</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-ratio" checked>
+                                <span>显示比例</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-tags">
+                                <span>显示标签</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>详情页显示</h4>
+                        <div class="settings-options">
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-name" checked>
+                                <span>显示文件名</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-path" checked>
+                                <span>显示路径</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-size" checked>
+                                <span>显示尺寸</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-ratio" checked>
+                                <span>显示比例</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-tags">
+                                <span>显示标签</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>                <div class="settings-actions">
+                    <button id="reset-settings-btn" class="control-btn secondary">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        重置默认
+                    </button>
+                    <button id="close-settings-btn" class="control-btn primary">
+                        <i class="fa-solid fa-check"></i>
+                        确定
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -117,8 +197,29 @@
                 <span class="modal-close">&times;</span>
                 <img id="modal-image" src="" alt="">
                 <div class="modal-info">
-                    <h3 id="modal-title"></h3>
-                    <p id="modal-path"></p>
+                    <div class="modal-info-line">
+                        <span class="modal-info-item modal-display-item" id="modal-path-item">
+                            <i class="fa-solid fa-folder info-icon"></i>
+                            <span id="modal-path" class="info-value"></span>
+                        </span>
+                        <span class="modal-info-item modal-display-item" id="modal-title-item">
+                            <i class="fa-solid fa-file-image info-icon"></i>
+                            <span id="modal-title" class="info-value"></span>
+                        </span>
+                        <span class="modal-info-item modal-display-item" id="modal-size-item">
+                            <i class="fa-solid fa-expand info-icon"></i>
+                            <span id="modal-size" class="info-value"></span>
+                        </span>
+                        <span class="modal-info-item modal-display-item" id="modal-ratio-item">
+                            <i class="fa-solid fa-crop info-icon"></i>
+                            <span id="modal-ratio" class="info-value"></span>
+                        </span>
+                    </div>
+                    <div id="modal-tags" class="modal-display-item modal-tags-section" style="display: none;">
+                        <div class="tags-container">
+                            <!-- 标签将通过JS动态添加 -->
+                        </div>
+                    </div>
                     <div class="modal-actions">
                         <button id="download-btn" class="control-btn">
                             <i class="fa-solid fa-download"></i>

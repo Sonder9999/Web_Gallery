@@ -243,4 +243,49 @@ router.get('/tags/:id/path', async (req, res) => {
     }
 });
 
+// 获取所有图片 (GET /api/images)
+router.get('/images', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+
+        const [images] = await connection.execute(`
+            SELECT id, filename, filepath, filesize, width, height, aspect_ratio, uploaded_at
+            FROM images
+            ORDER BY uploaded_at DESC
+        `);
+
+        res.json(images);
+    } catch (error) {
+        console.error('获取图片列表失败:', error);
+        res.status(500).json({ message: '获取图片列表失败' });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+// 获取单个图片的标签 (GET /api/images/:id/tags)
+router.get('/images/:id/tags', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const imageId = req.params.id;
+
+        const [tags] = await connection.execute(`
+            SELECT t.id, t.name, t.primary_name_en
+            FROM tags t
+            INNER JOIN image_tags it ON t.id = it.tag_id
+            WHERE it.image_id = ?
+            ORDER BY t.name
+        `, [imageId]);
+
+        res.json(tags);
+    } catch (error) {
+        console.error('获取图片标签失败:', error);
+        res.status(500).json({ message: '获取图片标签失败' });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
 module.exports = router;
