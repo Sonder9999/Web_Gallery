@@ -114,14 +114,14 @@
 /* 上传容器布局 */
 #upload-container {
     padding: 24px;
+    max-width: 1600px;
+    margin: 0 auto;
 }
 
 .container-layout {
     display: grid;
     grid-template-columns: 1fr 400px;
     gap: 24px;
-    max-width: 1400px;
-    margin: 0 auto;
 }
 
 /* 图片列表 */
@@ -225,6 +225,11 @@
     padding: 20px;
     box-shadow: var(--shadow-light);
     height: fit-content;
+    /* 高度自适应 */
+    position: sticky;
+    /* 滚动时固定 */
+    top: 90px;
+    /* 距离顶部导航栏的距离 */
 }
 
 .batch-tags-section, .individual-tags-section, .recommended-tags-section {
@@ -243,6 +248,13 @@
     margin: 0 0 12px 0;
     color: var(--text-color);
     font-size: 14px;
+    font-weight: 600;
+}
+
+.tags-column h3,
+.images-column h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
     font-weight: 600;
 }
 
@@ -416,15 +428,98 @@
     font-size: 14px;
 }
 
-/* 响应式设计 */
+/* =================================== */
+/* 树形推荐标签样式 (核心修改) */
+/* =================================== */
+.recommended-tags-section h4 {
+    margin-bottom: 12px;
+}
+
+#recommended-tags-tree {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    background: var(--bg-light);
+}
+
+#recommended-tags-tree ul {
+    list-style: none;
+    padding-left: 20px;
+    margin: 0;
+}
+
+#recommended-tags-tree>ul {
+    /* 顶级ul没有额外缩进 */
+    padding-left: 0;
+}
+
+#recommended-tags-tree li {
+    position: relative;
+}
+
+.tree-node-item {
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.tree-node-item:hover {
+    background-color: var(--primary-color)10;
+}
+
+.tree-node-item.selected {
+    background-color: var(--primary-color)20;
+    font-weight: 600;
+}
+
+.tree-toggle-btn {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    margin-right: 5px;
+}
+
+.tree-toggle-btn.empty {
+    visibility: hidden;
+    /* 没有子节点时占位隐藏 */
+}
+
+.tree-toggle-btn i {
+    transition: transform 0.2s ease-in-out;
+    font-size: 12px;
+}
+
+.tree-toggle-btn.expanded i {
+    transform: rotate(90deg);
+}
+
+.tree-node-label {
+    flex-grow: 1;
+}
+
+.tree-children-container.collapsed {
+    display: none;
+}
+
+/* 响应式调整 */
 @media (max-width: 1024px) {
     .container-layout {
         grid-template-columns: 1fr;
-        gap: 16px;
+        /* 单列布局 */
     }
 
-    .images-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    .tags-column {
+        position: static;
+        /* 取消固定 */
+        top: auto;
     }
 }
 
