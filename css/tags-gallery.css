@@ -1,0 +1,182 @@
+/* css/tags-gallery.css - 标签画廊页样式 */
+
+:root {
+    --card-hover-brightness: 0.9;
+    --card-bg-brightness: 0.4;
+    --card-text-color: #ffffff;
+    --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --card-radius: 12px;
+}
+
+body {
+    background-color: var(--bg-light);
+}
+
+#main-content {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    color: var(--text-color);
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.header p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+
+/* 瀑布流容器 */
+.masonry-grid {
+    column-count: 4;
+    column-gap: 20px;
+}
+
+/* 标签卡片 */
+.tag-card {
+    break-inside: avoid;
+    margin-bottom: 20px;
+    position: relative;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: block;
+    /* 使其表现得像一个链接 */
+    text-decoration: none;
+    color: var(--card-text-color);
+}
+
+.tag-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--card-shadow);
+}
+
+/* 卡片背景图 */
+.card-background {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.4s ease;
+}
+
+.tag-card:hover .card-background {
+    transform: scale(1.1);
+}
+
+/* 卡片遮罩层 */
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    /* 暗色遮罩 */
+    transition: background-color 0.3s ease;
+}
+
+.tag-card:hover .card-overlay {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* 卡片内容 */
+.card-content {
+    position: relative;
+    /* 确保在遮罩层之上 */
+    z-index: 2;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    /* 内容置底 */
+    min-height: 180px;
+    /* 卡片最小高度 */
+}
+
+.tag-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    margin-bottom: 8px;
+}
+
+.image-count {
+    font-size: 0.9rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 4px 10px;
+    border-radius: 20px;
+    align-self: flex-start;
+    /* 左对齐 */
+    backdrop-filter: blur(5px);
+}
+
+.image-count i {
+    margin-right: 6px;
+}
+
+/* 加载动画 */
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--text-light);
+    font-size: 1.2rem;
+    gap: 12px;
+}
+
+.loading i {
+    font-size: 2rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .masonry-grid {
+        column-count: 3;
+    }
+}
+
+@media (max-width: 768px) {
+    .masonry-grid {
+        column-count: 2;
+    }
+
+    .header h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .masonry-grid {
+        column-count: 1;
+    }
+
+    .tag-name {
+        font-size: 1.2rem;
+    }
+}
+
+/* 暗色模式适配 */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #121212;
+    }
+
+    .header {
+        color: var(--text-color);
+    }
+}

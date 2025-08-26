@@ -299,4 +299,26 @@ router.get('/images/:id/tags', async (req, res) => {
     }
 });
 
+// [新增] 获取特定标签下的所有图片 (GET /api/tags/:id/images)
+router.get('/tags/:id/images', async (req, res) => {
+    const tagId = req.params.id;
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        const [images] = await connection.execute(`
+            SELECT i.id, i.filename, i.filepath, i.width, i.height
+            FROM images i
+            INNER JOIN image_tags it ON i.id = it.image_id
+            WHERE it.tag_id = ?
+        `, [tagId]);
+
+        res.json(images);
+    } catch (error) {
+        console.error(`获取标签 ${tagId} 的图片失败:`, error);
+        res.status(500).json({ message: '服务器内部错误' });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
 module.exports = router;

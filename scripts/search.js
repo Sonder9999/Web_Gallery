@@ -1,4 +1,4 @@
-// scripts/search.js - (已更新)
+// scripts/search.js - (已更新，增加页面加载时自动搜索功能)
 
 class SearchManager {
     constructor(galleryInstance) {
@@ -8,6 +8,8 @@ class SearchManager {
         this.searchBtn = document.querySelector('.search-btn');
 
         this.bindEvents();
+        // [新增] 初始化时检查URL参数
+        this.checkURLForSearchQuery();
     }
 
     bindEvents() {
@@ -23,17 +25,40 @@ class SearchManager {
         }
     }
 
+    /**
+     * [新增] 检查页面URL中是否包含 'search' 参数，如果包含则自动执行搜索。
+     */
+    checkURLForSearchQuery() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('search');
+
+        if (searchQuery) {
+            console.log(`从URL检测到搜索词: "${searchQuery}"`);
+            // 将搜索词填入输入框
+            this.searchInput.value = decodeURIComponent(searchQuery);
+            // 自动执行搜索
+            this.executeSearch();
+        }
+    }
+
     async executeSearch() {
         const query = this.searchInput.value.trim();
 
-        // 如果查询为空，恢复显示所有图片
         if (!query) {
-            // [修改] 恢复使用原始数据源
             this.gallery.currentSourceImages = [...this.gallery.originalImages];
-            // 触发筛选器重新应用在所有图片上
-            window.filterManager.applyFilters();
+            // 如果清空了搜索框，也需要让筛选器在所有图片上重新应用
+            if (window.filterManager) {
+                window.filterManager.applyFilters();
+            } else {
+                this.gallery.updateWithNewImages(this.gallery.currentSourceImages);
+            }
             return;
         }
+
+        // [新增] 更新URL，但不重新加载页面，方便用户分享和刷新
+        const newUrl = `${window.location.pathname}?search=${encodeURIComponent(query)}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+
 
         console.log(`正在执行高级搜索: ${query}`);
         this.gallery.showLoading(true);
@@ -43,12 +68,18 @@ class SearchManager {
             if (!response.ok) throw new Error(`网络请求错误: ${response.status}`);
             const searchResults = await response.json();
 
-            // [核心修改] 将搜索结果设置为新的数据源，并触发筛选器重新应用
             this.gallery.currentSourceImages = searchResults;
-            window.filterManager.applyFilters(); // 这会使用新的数据源进行筛选并更新UI
+
+            // 让筛选器在新的搜索结果上应用筛选
+            if (window.filterManager) {
+                window.filterManager.applyFilters();
+            } else {
+                this.gallery.updateWithNewImages(searchResults);
+            }
+
 
             if (searchResults.length === 0) {
-                this.gallery.updateWithNewImages([]); // 清空画廊
+                this.gallery.updateWithNewImages([]);
                 const container = document.getElementById('gallery-grid');
                 container.innerHTML = `<p class="error-message">未能找到与 "${query}" 相关的结果。</p>`;
             }
