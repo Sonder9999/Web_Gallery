@@ -8,7 +8,7 @@ module.exports = {
     // 1 = 只使用第一个标签作为文件夹 (例如: images/genshin/)
     // 2 = 使用前两个标签作为文件夹层级 (例如: images/genshin/kokomi/)
     // 3 = 使用前三个标签 (例如: images/genshin/kokomi/summer/)
-    folderDepth: 2,
+    folderDepth: 1,
 
     // 无标签图片存储文件夹名称
     // 当图片没有任何标签时，会存储在 images/{noTagsFolder}/ 下

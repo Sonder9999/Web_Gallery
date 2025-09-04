@@ -14,6 +14,10 @@ const router = express.Router();
 // 在这里修改你希望生成文件名的语言。可选值: 'en', 'zh', 'ja', 'pinyin' 等
 const FILENAME_LANGUAGE = 'en';
 
+// --- [新增] 文件夹命名语言配置开关 ---
+// 控制文件夹路径中使用的语言。可选值: 'en', 'zh', 'ja', 'pinyin' 等
+const FOLDER_NAME_LANGUAGE = 'en';
+
 // --- [新增] 文件存储配置 ---
 const STORAGE_CONFIG = require('../config/storage');
 
@@ -30,11 +34,12 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 /**
- * 根据标签生成文件夹路径
+ * 根据标签生成文件夹路径（支持多语言）
+ * @param {Object} connection - 数据库连接
  * @param {Array} tagNames - 标签名称数组
- * @returns {string} - 相对于images文件夹的路径
+ * @returns {Promise<string>} - 相对于images文件夹的路径
  */
-function generateFolderPathFromTags(tagNames) {
+async function generateFolderPathFromTags(connection, tagNames) {
     if (!STORAGE_CONFIG.enableTagBasedFolders) {
         return ''; // 不启用分类存储时返回空路径
     }
@@ -46,9 +51,31 @@ function generateFolderPathFromTags(tagNames) {
     // 取前N个标签作为文件夹层级
     const folderTags = tagNames.slice(0, STORAGE_CONFIG.folderDepth);
 
-    // 将标签名转换为文件夹名
-    const folderNames = folderTags.map(tag => {
-        let folderName = tag;
+    // 将标签名转换为指定语言的文件夹名
+    const folderNames = [];
+
+    for (const tagName of folderTags) {
+        let folderName = tagName; // 默认使用原标签名
+
+        // 从数据库查询指定语言的标签名
+        try {
+            const [aliasRows] = await connection.execute('SELECT tag_id FROM tag_aliases WHERE name = ?', [tagName]);
+
+            if (aliasRows.length > 0) {
+                const tagId = aliasRows[0].tag_id;
+                const [translateRows] = await connection.execute(
+                    'SELECT name FROM tag_aliases WHERE tag_id = ? AND lang = ?',
+                    [tagId, FOLDER_NAME_LANGUAGE]
+                );
+
+                if (translateRows.length > 0) {
+                    folderName = translateRows[0].name;
+                }
+            }
+        } catch (error) {
+            console.warn(`[文件存储] 查询标签 "${tagName}" 的 ${FOLDER_NAME_LANGUAGE} 别名失败:`, error.message);
+            // 继续使用原标签名
+        }
 
         // 应用转换规则
         if (STORAGE_CONFIG.tagToFolderName.lowercase) {
@@ -64,11 +91,14 @@ function generateFolderPathFromTags(tagNames) {
             folderName = folderName.replace(/[^\w\u4e00-\u9fa5_-]/g, '');
         }
 
-        return folderName.trim();
-    }).filter(name => name.length > 0); // 过滤掉空字符串
+        const processedName = folderName.trim();
+        if (processedName.length > 0) {
+            folderNames.push(processedName);
+        }
+    }
 
     const folderPath = folderNames.join('/');
-    console.log(`[文件存储] 标签: [${tagNames.join(', ')}] -> 文件夹路径: ${folderPath || '(根目录)'}`);
+    console.log(`[文件存储] 标签: [${tagNames.join(', ')}] -> 文件夹路径(${FOLDER_NAME_LANGUAGE}): ${folderPath || '(根目录)'}`);
     return folderPath;
 }
 
@@ -77,7 +107,9 @@ console.log('[文件存储配置]', {
     启用标签分类: STORAGE_CONFIG.enableTagBasedFolders,
     文件夹层数: STORAGE_CONFIG.folderDepth,
     无标签文件夹: STORAGE_CONFIG.noTagsFolder,
-    转换规则: STORAGE_CONFIG.tagToFolderName
+    转换规则: STORAGE_CONFIG.tagToFolderName,
+    文件夹语言: FOLDER_NAME_LANGUAGE,
+    文件名语言: FILENAME_LANGUAGE
 });
 
 /**
@@ -175,8 +207,8 @@ router.post('/upload', upload.single('image'), async (req, res) => {
 
         const newFilename = await generateFilenameFromTags(connection, tagList, path.extname(req.file.originalname));
 
-        // 根据标签生成文件夹路径
-        const folderPath = generateFolderPathFromTags(tagList);
+        // 根据标签生成文件夹路径（支持多语言）
+        const folderPath = await generateFolderPathFromTags(connection, tagList);
         const uploadPath = path.join(__dirname, '../../images/', folderPath);
         const filepath = path.join(uploadPath, newFilename);
 
