@@ -14,6 +14,9 @@ const router = express.Router();
 // 在这里修改你希望生成文件名的语言。可选值: 'en', 'zh', 'ja', 'pinyin' 等
 const FILENAME_LANGUAGE = 'en';
 
+// --- [新增] 文件存储配置 ---
+const STORAGE_CONFIG = require('../config/storage');
+
 // --- 数据库连接配置 ---
 const dbConfig = {
     host: 'localhost',
@@ -25,6 +28,57 @@ const dbConfig = {
 // --- 文件存储配置 ---
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+
+/**
+ * 根据标签生成文件夹路径
+ * @param {Array} tagNames - 标签名称数组
+ * @returns {string} - 相对于images文件夹的路径
+ */
+function generateFolderPathFromTags(tagNames) {
+    if (!STORAGE_CONFIG.enableTagBasedFolders) {
+        return ''; // 不启用分类存储时返回空路径
+    }
+
+    if (!tagNames || tagNames.length === 0) {
+        return STORAGE_CONFIG.noTagsFolder; // 无标签时返回默认文件夹
+    }
+
+    // 取前N个标签作为文件夹层级
+    const folderTags = tagNames.slice(0, STORAGE_CONFIG.folderDepth);
+
+    // 将标签名转换为文件夹名
+    const folderNames = folderTags.map(tag => {
+        let folderName = tag;
+
+        // 应用转换规则
+        if (STORAGE_CONFIG.tagToFolderName.lowercase) {
+            folderName = folderName.toLowerCase();
+        }
+
+        if (STORAGE_CONFIG.tagToFolderName.replaceSpaces) {
+            folderName = folderName.replace(/\s+/g, '_');
+        }
+
+        if (STORAGE_CONFIG.tagToFolderName.removeSpecialChars) {
+            // 保留中文、字母、数字、下划线、连字符
+            folderName = folderName.replace(/[^\w\u4e00-\u9fa5_-]/g, '');
+        }
+
+        return folderName.trim();
+    }).filter(name => name.length > 0); // 过滤掉空字符串
+
+    const folderPath = folderNames.join('/');
+    console.log(`[文件存储] 标签: [${tagNames.join(', ')}] -> 文件夹路径: ${folderPath || '(根目录)'}`);
+    return folderPath;
+}
+
+// 输出当前存储配置
+console.log('[文件存储配置]', {
+    启用标签分类: STORAGE_CONFIG.enableTagBasedFolders,
+    文件夹层数: STORAGE_CONFIG.folderDepth,
+    无标签文件夹: STORAGE_CONFIG.noTagsFolder,
+    转换规则: STORAGE_CONFIG.tagToFolderName
+});
 
 /**
  * 封装的数据库事务处理函数，用于更新图片信息
@@ -120,8 +174,14 @@ router.post('/upload', upload.single('image'), async (req, res) => {
         }
 
         const newFilename = await generateFilenameFromTags(connection, tagList, path.extname(req.file.originalname));
-        const uploadPath = path.join(__dirname, '../../images/'); // 路径调整
+
+        // 根据标签生成文件夹路径
+        const folderPath = generateFolderPathFromTags(tagList);
+        const uploadPath = path.join(__dirname, '../../images/', folderPath);
         const filepath = path.join(uploadPath, newFilename);
+
+        // 数据库存储的相对路径
+        const relativePath = folderPath ? `images/${folderPath}/${newFilename}` : `images/${newFilename}`;
 
         await fs.mkdir(uploadPath, { recursive: true });
         await fs.writeFile(filepath, fileBuffer);
@@ -129,7 +189,7 @@ router.post('/upload', upload.single('image'), async (req, res) => {
         await connection.beginTransaction();
         const [imageResult] = await connection.execute(
             'INSERT INTO images (filename, filepath, filesize, width, height, aspect_ratio, source_url, file_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [newFilename, `images/${newFilename}`, req.file.size, dimensions.width, dimensions.height, aspectRatio, source || '', hash]
+            [newFilename, relativePath, req.file.size, dimensions.width, dimensions.height, aspectRatio, source || '', hash]
         );
         const imageId = imageResult.insertId;
 
