@@ -2,11 +2,11 @@
 
 /* 基础布局 */
 
-body{
-    background-color:var(--bg-light);
+body {
+    background-color: var(--bg-light);
 }
 
-li{
+li {
     list-style: none;
 }
 
@@ -14,7 +14,6 @@ li{
     max-width: 1400px;
     margin: 30px auto;
     padding: 24px;
-    background: var(--bg-light);
 }
 
 .tags-header h1 {
@@ -36,12 +35,7 @@ li{
 }
 
 .form-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 12px;
 }
 
 .form-header h3 {
@@ -50,22 +44,7 @@ li{
     font-size: 18px;
 }
 
-.breadcrumb {
-    color: var(--text-light);
-    font-size: 14px;
-}
-
-.breadcrumb-item {
-    color: var(--primary-color);
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.breadcrumb-item:hover {
-    text-decoration: underline;
-}
-
-/* 父标签选择 */
+/* [核心修改] 父标签选择 */
 .parent-selection {
     display: flex;
     align-items: center;
@@ -80,9 +59,24 @@ li{
     white-space: nowrap;
 }
 
+.parent-selector-container {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    min-width: 250px;
+}
+
+#parent-display {
+    cursor: pointer;
+}
+
+#parent-display:hover {
+    border-color: var(--primary-color);
+}
+
+
 .form-select {
     flex: 1;
-    min-width: 200px;
     padding: 10px 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
@@ -96,25 +90,6 @@ li{
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px var(--primary-color)20;
-}
-
-.clear-parent-btn {
-    background: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    transition: var(--transition-fast);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.clear-parent-btn:hover {
-    background: #c0392b;
-    transform: scale(1.1);
 }
 
 /* 输入字段 */
@@ -162,7 +137,7 @@ li{
 }
 
 .control-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 16px;
@@ -386,29 +361,7 @@ li{
     display: none;
 }
 
-/* 表格容器 */
-.table-container {
-    background: var(--bg-white);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    box-shadow: var(--shadow-light);
-}
-
-.table-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.table-header h3 {
-    margin: 0;
-    color: var(--text-color);
-    font-size: 18px;
-}
-
-/* 弹窗样式 */
+/* [新增] 弹窗样式 */
 .modal {
     display: none;
     position: fixed;
@@ -417,9 +370,10 @@ li{
     top: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.7);
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(4px);
 }
 
 .modal.show {
@@ -436,6 +390,14 @@ li{
     box-shadow: var(--shadow-medium);
 }
 
+.modal-content.large {
+    max-width: 800px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+}
+
+
 .modal-content h3 {
     margin: 0 0 16px 0;
     color: var(--text-color);
@@ -444,6 +406,10 @@ li{
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.modal-content.large h3 {
+    justify-content: flex-start;
 }
 
 .modal-content p {
@@ -466,6 +432,45 @@ li{
     justify-content: center;
     margin-top: 24px;
 }
+
+.modal-content.large .modal-actions {
+    justify-content: flex-end;
+}
+
+/* [新增] 模态框内的搜索和树 */
+.modal-search {
+    margin-bottom: 16px;
+}
+
+.modal-search input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+}
+
+.modal-search input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-color)20;
+}
+
+.modal-tree {
+    flex: 1;
+    max-height: 50vh;
+    border-color: var(--border-color);
+    background: var(--bg-light);
+}
+
+/* [新增] 模态框中被搜索匹配的标签高亮 */
+.modal-tree .tree-label.highlight {
+    background-color: #ffdd77;
+    color: #333;
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
 
 /* 加载指示器 */
 .loading-spinner {

@@ -11,7 +11,6 @@
 </head>
 
 <body>
-    <!-- 顶部导航栏 -->
     <nav id="top-nav">
         <div id="top-logo">
             <img src="images/settings/top_logo.png" id="top-logo-img" alt="Gallery Logo">
@@ -55,8 +54,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- 移动端底部导航栏 -->
     <nav id="bottom-nav">
         <div class="nav-links-mobile">
             <a href="/index.html" class="nav-link active" title="主页">
@@ -78,36 +75,29 @@
         </div>
     </nav>
 
-    <!-- 主要内容区域 -->
     <main id="tags-content">
         <div class="tags-header">
             <h1><i class="fa-solid fa-sitemap"></i> 层级标签管理</h1>
         </div>
 
-        <!-- 添加标签表单 -->
         <div class="input-section">
             <form id="add-tag-form">
                 <div class="form-header">
                     <h3 id="form-title">添加新标签</h3>
-                    <div class="breadcrumb" id="current-path" style="display: none;">
-                        <span>当前位置：</span>
-                        <span id="breadcrumb-path"></span>
+                </div>
+
+                <div class="parent-selection">
+                    <label for="parent-display">父标签：</label>
+                    <div class="parent-selector-container">
+                        <input type="text" id="parent-display" class="form-select" placeholder="-- 顶级标签 (无父标签) --"
+                            readonly>
+                        <button type="button" id="open-parent-modal-btn" class="control-btn secondary">
+                            <i class="fa-solid fa-folder-tree"></i> 选择...
+                        </button>
                     </div>
                 </div>
 
-                <!-- 父标签选择 -->
-                <div class="parent-selection">
-                    <label for="parent-selector">父标签：</label>
-                    <select id="parent-selector" class="form-select">
-                        <option value="">-- 顶级标签 (无父标签) --</option>
-                    </select>
-                    <button type="button" id="clear-parent-btn" class="clear-parent-btn" title="清除父标签">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
-                </div>
-
                 <div id="input-fields-container" class="input-fields">
-                    <!-- 输入字段将通过JS动态生成 -->
                 </div>
 
                 <div class="input-actions">
@@ -124,7 +114,6 @@
             </form>
         </div>
 
-        <!-- 标签树形展示 -->
         <div class="tree-container">
             <div class="tree-header">
                 <h3>标签层级结构</h3>
@@ -139,31 +128,13 @@
             </div>
 
             <div id="tags-tree" class="tags-tree">
-                <!-- 树形结构将通过JS动态生成 -->
             </div>
         </div>
 
-        <!-- 表格视图 (可选的平铺视图) -->
-        <div class="table-container" style="display: none;">
-            <div class="table-header">
-                <h3>表格视图</h3>
-                <button id="toggle-view-btn" class="control-btn secondary">
-                    <i class="fa-solid fa-table"></i> 切换到表格视图
-                </button>
-            </div>
-
-            <table id="tags-table">
-                <thead></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- 加载指示器 -->
         <div id="loading-indicator" class="loading-spinner hidden">
             <i class="fa-solid fa-spinner fa-spin"></i>
         </div>
 
-        <!-- 删除确认弹窗 -->
         <div id="delete-modal" class="modal">
             <div class="modal-content">
                 <h3><i class="fa-solid fa-exclamation-triangle"></i> 确认删除</h3>
@@ -183,7 +154,26 @@
         </div>
     </main>
 
-    <!-- JavaScript -->
+    <div id="parent-selector-modal" class="modal">
+        <div class="modal-content large">
+            <h3>选择父标签</h3>
+            <div class="modal-search">
+                <input type="text" id="modal-search-input" placeholder="搜索标签...">
+            </div>
+            <div id="modal-tree-container" class="tags-tree modal-tree">
+            </div>
+            <div class="modal-actions">
+                <button id="modal-set-top-level-btn" class="control-btn secondary">
+                    <i class="fa-solid fa-star"></i> 设为顶级标签
+                </button>
+                <button id="modal-close-btn" class="control-btn">
+                    <i class="fa-solid fa-times"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+
     <script src="scripts/nav.js"></script>
     <script src="scripts/tags.js"></script>
 </body>
