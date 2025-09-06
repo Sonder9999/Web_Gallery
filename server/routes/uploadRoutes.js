@@ -12,11 +12,11 @@ const router = express.Router();
 
 // --- [新增] 文件名语言配置开关 ---
 // 在这里修改你希望生成文件名的语言。可选值: 'en', 'zh', 'ja', 'pinyin' 等
-const FILENAME_LANGUAGE = 'en';
+const FILENAME_LANGUAGE = 'zh';
 
 // --- [新增] 文件夹命名语言配置开关 ---
 // 控制文件夹路径中使用的语言。可选值: 'en', 'zh', 'ja', 'pinyin' 等
-const FOLDER_NAME_LANGUAGE = 'en';
+const FOLDER_NAME_LANGUAGE = 'zh';
 
 // --- [新增] 文件存储配置 ---
 const STORAGE_CONFIG = require('../config/storage');
