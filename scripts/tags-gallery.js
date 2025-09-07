@@ -1,4 +1,4 @@
-// scripts/tags-gallery.js - (已修复标签和图片隐藏状态的显示BUG)
+// scripts/tags-gallery.js - (已修复图片统计逻辑，现在会统计所有图片)
 
 class TagsGallery {
     constructor() {
@@ -13,7 +13,6 @@ class TagsGallery {
     async init() {
         this.showLoading(true);
         try {
-            // 后端现在会正确处理 visible=true，所以这里只会获取 is_hidden = 0 的标签
             const response = await fetch(`${this.API_BASE_URL}/tags?visible=true`);
             if (!response.ok) throw new Error('获取标签列表失败');
             const tagsTree = await response.json();
@@ -40,12 +39,17 @@ class TagsGallery {
                 if (!imagesResponse.ok) return { ...tag, imageCount: 0, coverImage: null };
 
                 const images = await imagesResponse.json();
-                // [BUG修复] 只使用未被隐藏的图片作为封面和计数
+
+                // [BUG修复]
+                // 1. imageCount 统计所有关联图片的数量
+                const totalImageCount = images.length;
+
+                // 2. coverImage 只从可见的图片中选择
                 const visibleImages = images.filter(img => !img.is_hidden);
 
                 return {
                     ...tag,
-                    imageCount: visibleImages.length,
+                    imageCount: totalImageCount, // 使用总数
                     coverImage: visibleImages.length > 0 ? visibleImages[Math.floor(Math.random() * visibleImages.length)] : null
                 };
             } catch (e) {
@@ -84,14 +88,20 @@ class TagsGallery {
     }
 
     createTagCard(tag) {
-        if (!tag.coverImage) return null;
+        // [修改] 即使没有可见的封面图片，只要图片总数 > 0，卡片也应该显示
+        if (tag.imageCount === 0) {
+            return null;
+        }
 
         const card = document.createElement('a');
         card.className = 'tag-card';
         card.href = `/index.html?search=${encodeURIComponent(this.getTagName(tag))}`;
-        const coverUrl = tag.coverImage.filepath.replace(/\\/g, '/');
 
-        // [BUG修复] 动态决定开关是否为 active 状态
+        // 如果有可见的封面图，则使用它；否则使用一个默认的灰色背景
+        const backgroundStyle = tag.coverImage
+            ? `background-image: url('${tag.coverImage.filepath.replace(/\\/g, '/')}')`
+            : 'background-color: #2c3e50;';
+
         const isActive = !tag.is_hidden;
         const visibilityToggleHTML = this.enableVisibilityControls ? `
             <div class="visibility-toggle-container">
@@ -102,7 +112,7 @@ class TagsGallery {
 
         card.innerHTML = `
             ${visibilityToggleHTML}
-            <div class="card-background" style="background-image: url('${coverUrl}')"></div>
+            <div class="card-background" style="${backgroundStyle}"></div>
             <div class="card-overlay"></div>
             <div class="card-content" style="min-height: ${this.getRandomHeight()}px;">
                 <div class="tag-name">${this.getTagName(tag)}</div>
