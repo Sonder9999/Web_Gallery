@@ -10,8 +10,8 @@ const { imageSize: sizeOf } = require('image-size');
 
 const router = express.Router();
 
-const FILENAME_LANGUAGE = 'en'; // 生成文件名时优先使用的语言
-const FOLDER_NAME_LANGUAGE = 'en'; // 生成文件夹名时优先使用的语言
+const FILENAME_LANGUAGE = 'zh'; // 生成文件名时优先使用的语言
+const FOLDER_NAME_LANGUAGE = 'zh'; // 生成文件夹名时优先使用的语言
 const STORAGE_CONFIG = require('../config/storage');
 
 const dbConfig = {
