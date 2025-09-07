@@ -10,3 +10,10 @@ ADD COLUMN `is_hidden` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0 for visible, 1 f
 
 -- 为 is_hidden 字段添加索引，以优化查询性能
 ALTER TABLE `images` ADD INDEX `idx_is_hidden` (`is_hidden`);
+
+
+ALTER TABLE `tags`
+ADD COLUMN `is_hidden` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0 for visible, 1 for hidden';
+
+-- 为 is_hidden 字段添加索引，以优化查询性能
+ALTER TABLE `tags` ADD INDEX `idx_is_hidden` (`is_hidden`);

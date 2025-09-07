@@ -180,3 +180,25 @@ body {
         color: var(--text-color);
     }
 }
+
+/* 标签卡片 */
+.tag-card {
+    break-inside: avoid;
+    margin-bottom: 20px;
+    position: relative;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    /* [修改] 增加 opacity 和 transform 的过渡动画 */
+    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.4s ease, transform 0.4s ease;
+    display: block;
+    text-decoration: none;
+    color: var(--card-text-color);
+}
+
+/* [新增] 卡片正在消失时的样式 */
+.tag-card.fading-out {
+    opacity: 0;
+    transform: scale(0.95);
+}

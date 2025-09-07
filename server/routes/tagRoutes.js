@@ -114,14 +114,22 @@ function buildTree(flatData) {
     return roots;
 }
 // 1. 获取所有标签（树形结构）(GET /api/tags)
+// [BUG修复] 正确处理 /tags 路由的 visible 查询参数
 router.get('/tags', async (req, res) => {
+    const { visible } = req.query;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
-        const [tags] = await connection.execute(`
-            SELECT id, name, primary_name_en, parent_id FROM tags ORDER BY parent_id, primary_name_en ASC
-        `);
+
+        // 根据 'visible' 参数决定 SQL 查询
+        let tagQuery = 'SELECT id, name, primary_name_en, parent_id, is_hidden FROM tags ORDER BY parent_id, primary_name_en ASC';
+        if (visible === 'true') {
+            tagQuery = 'SELECT id, name, primary_name_en, parent_id, is_hidden FROM tags WHERE is_hidden = 0 ORDER BY parent_id, primary_name_en ASC';
+        }
+
+        const [tags] = await connection.execute(tagQuery);
         const [aliases] = await connection.execute('SELECT * FROM tag_aliases');
+
         const tagMap = {};
         tags.forEach(tag => { tagMap[tag.id] = { ...tag, aliases: [] }; });
         aliases.forEach(alias => {
@@ -129,6 +137,7 @@ router.get('/tags', async (req, res) => {
                 tagMap[alias.tag_id].aliases.push({ id: alias.id, name: alias.name, lang: alias.lang });
             }
         });
+
         const treeData = buildTree(Object.values(tagMap));
         res.json(treeData);
     } catch (error) {
@@ -231,6 +240,32 @@ router.delete('/tags/:id', async (req, res) => {
         if (connection) await connection.end();
     }
 });
+
+// [新增] 更新标签可见性 API
+router.put('/tags/:id/visibility', async (req, res) => {
+    const { id } = req.params;
+    const { is_hidden } = req.body;
+
+    if (typeof is_hidden !== 'boolean') {
+        return res.status(400).json({ message: 'is_hidden 必须是一个布尔值' });
+    }
+
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        await connection.execute(
+            'UPDATE tags SET is_hidden = ? WHERE id = ?',
+            [is_hidden ? 1 : 0, id]
+        );
+        res.json({ success: true, message: '标签可见性更新成功' });
+    } catch (error) {
+        console.error('更新标签可见性失败:', error);
+        res.status(500).json({ message: '服务器错误: ' + error.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
 // 5. 获取标签路径（面包屑导航用）(GET /api/tags/:id/path)
 router.get('/tags/:id/path', async (req, res) => {
     const { id } = req.params;
@@ -320,13 +355,14 @@ router.get('/images/:id/tags', async (req, res) => {
 });
 
 // [新增] 获取特定标签下的所有图片 (GET /api/tags/:id/images)
+// [BUG修复] /tags/:id/images 路由返回结果中增加 is_hidden 字段
 router.get('/tags/:id/images', async (req, res) => {
     const tagId = req.params.id;
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
         const [images] = await connection.execute(`
-            SELECT i.id, i.filename, i.filepath, i.width, i.height
+            SELECT i.id, i.filename, i.filepath, i.width, i.height, i.is_hidden
             FROM images i
             INNER JOIN image_tags it ON i.id = it.image_id
             WHERE it.tag_id = ?
