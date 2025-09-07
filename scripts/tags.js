@@ -11,6 +11,9 @@ class HierarchicalTagsManager {
         // [新增] 用于存储当前选择的父标签ID
         this.selectedParentId = null;
 
+        // [新增] 代码级功能开关：设为 true 才会显示管理页面的“可见”开关
+        this.enableVisibilityControls = true;
+
         this.baseFields = [
             { key: 'zh', label: '中文名', required: true },
             { key: 'en', label: '英文名', required: true },
@@ -64,6 +67,10 @@ class HierarchicalTagsManager {
         this.deleteModal = document.getElementById('delete-modal');
         this.deleteTagNameSpan = document.getElementById('delete-tag-name');
         this.childrenWarning = document.getElementById('children-warning');
+
+        // [新增] 缓存表单中的可见性开关
+        this.formVisibilityToggle = document.getElementById('form-tag-visibility-toggle');
+        this.formVisibilityToggleContainer = document.querySelector('.form-visibility-control .toggle-container');
     }
 
     bindGlobalEvents() {
@@ -87,6 +94,14 @@ class HierarchicalTagsManager {
         });
         this.modalSearchInput.addEventListener('input', () => this.filterModalTree());
         this.modalTreeContainer.addEventListener('click', (e) => this.handleModalTreeClick(e));
+
+        // [BUG修复] 为表单中的开关容器添加点击事件监听器
+        if (this.formVisibilityToggleContainer) {
+            this.formVisibilityToggleContainer.addEventListener('click', () => {
+                // 手动切换隐藏的 checkbox 的状态
+                this.formVisibilityToggle.checked = !this.formVisibilityToggle.checked;
+            });
+        }
     }
 
 
@@ -146,20 +161,26 @@ class HierarchicalTagsManager {
 
     renderTreeNodes(nodes, isModal = false) {
         return nodes.map(node => {
-            // 在编辑模式下，不能选择自己或自己的后代作为父标签
             if (isModal && this.currentEditingTagId) {
                 const excludedIds = this.getDescendantIds(this.currentEditingTagId);
-                if (excludedIds.includes(node.id)) {
-                    return ''; // 跳过渲染
-                }
+                if (excludedIds.includes(node.id)) return '';
             }
 
             const hasChildren = node.children && node.children.length > 0;
             const childrenHTML = hasChildren ? `<ul class="tree-children collapsed">${this.renderTreeNodes(node.children, isModal)}</ul>` : '';
 
+            // [新增] 根据 is_hidden 状态生成开关的 HTML
+            const visibilityToggleHTML = (this.enableVisibilityControls && !isModal) ? `
+                <label class="tree-visibility-toggle" title="控制此标签是否在画廊显示">
+                    <input type="checkbox" data-action="toggle-visibility" ${node.is_hidden ? '' : 'checked'}>
+                    <div class="toggle-switch"></div>
+                </label>
+            ` : '';
+
+            // [修改] 为 div.tree-item 添加 is-hidden 类（如果适用）
             return `
                 <li data-tag-id="${node.id}">
-                    <div class="tree-item ${this.currentEditingTagId === node.id ? 'selected' : ''}">
+                    <div class="tree-item ${this.currentEditingTagId === node.id ? 'selected' : ''} ${node.is_hidden ? 'is-hidden' : ''}">
                         <span class="tree-indent">
                             ${hasChildren ? `<button class="tree-toggle"><i class="fa-solid fa-chevron-right"></i></button>` : ''}
                         </span>
@@ -169,6 +190,7 @@ class HierarchicalTagsManager {
                         </div>
                         ${!isModal ? `
                         <div class="tree-actions">
+                            ${visibilityToggleHTML}
                             <button class="tree-action-btn add-child" title="添加子标签"><i class="fa-solid fa-plus"></i></button>
                             <button class="tree-action-btn edit" title="编辑"><i class="fa-solid fa-edit"></i></button>
                             <button class="tree-action-btn delete" title="删除"><i class="fa-solid fa-trash"></i></button>
@@ -184,8 +206,16 @@ class HierarchicalTagsManager {
         const listItem = e.target.closest('li[data-tag-id]');
         if (!listItem) return;
         const tagId = parseInt(listItem.dataset.tagId, 10);
-        const button = e.target.closest('button');
 
+        // [新增] 处理可见性开关的点击事件
+        if (e.target.dataset.action === 'toggle-visibility') {
+            const isChecked = e.target.checked;
+            // isChecked 为 true 意味着标签可见，is_hidden 应该是 false
+            this.toggleTagVisibility(tagId, !isChecked);
+            return; // 处理完开关事件后，不再执行后续逻辑
+        }
+
+        const button = e.target.closest('button');
         if (button) {
             if (button.classList.contains('tree-toggle')) {
                 listItem.querySelector('.tree-children')?.classList.toggle('collapsed');
@@ -199,15 +229,55 @@ class HierarchicalTagsManager {
                 this.showDeleteModal(tagId);
             }
         } else if (e.target.closest('.tree-item')) {
+            // 如果点击的不是开关，则进入编辑模式
             this.enterEditMode(tagId);
         }
     }
+
+    // [新增] 切换标签可见性的核心函数
+    async toggleTagVisibility(tagId, shouldBeHidden) {
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/tags/${tagId}/visibility`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_hidden: shouldBeHidden })
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || '更新失败');
+            }
+
+            // 更新成功后，同步前端UI
+            const treeItem = this.treeContainer.querySelector(`li[data-tag-id="${tagId}"] > .tree-item`);
+            if (treeItem) {
+                treeItem.classList.toggle('is-hidden', shouldBeHidden);
+            }
+            // 同时更新内存中的数据状态，以便下次渲染时保持一致
+            const tagData = this.flatTags.get(tagId);
+            if (tagData) {
+                tagData.is_hidden = shouldBeHidden;
+            }
+
+        } catch (error) {
+            console.error('更新标签可见性失败:', error);
+            alert(`操作失败: ${error.message}`);
+            // 如果API调用失败，则将开关恢复原状
+            const checkbox = this.treeContainer.querySelector(`li[data-tag-id="${tagId}"] input[data-action="toggle-visibility"]`);
+            if (checkbox) {
+                checkbox.checked = !shouldBeHidden;
+            }
+        }
+    }
+
 
 
     async handleFormSubmit(e) {
         e.preventDefault();
         const { primary_name_en, aliases } = this.collectFormData();
         const parent_id = this.selectedParentId;
+
+        // [修改] 获取开关状态
+        const is_hidden = !this.formVisibilityToggle.checked;
 
         if (!aliases.some(a => a.lang === 'zh' && a.name)) { alert('请至少填写中文名称'); return; }
         if (!aliases.some(a => a.lang === 'en' && a.name)) { alert('请至少填写英文名称'); return; }
@@ -216,10 +286,11 @@ class HierarchicalTagsManager {
         const url = this.currentEditingTagId ? `${this.API_BASE_URL}/tags/${this.currentEditingTagId}` : `${this.API_BASE_URL}/tags`;
 
         try {
+            // [修改] 将 is_hidden 添加到发送的数据中
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ primary_name_en, aliases, parent_id })
+                body: JSON.stringify({ primary_name_en, aliases, parent_id, is_hidden })
             });
             if (!response.ok) {
                 const error = await response.json();
@@ -257,6 +328,11 @@ class HierarchicalTagsManager {
         });
         this.selectParent(tag.parent_id);
 
+        // [修改] 设置表单开关的状态以匹配当前标签
+        if (this.formVisibilityToggle) {
+            this.formVisibilityToggle.checked = !tag.is_hidden;
+        }
+
         this.formTitle.textContent = `编辑标签：${this.getNodeDisplayName(tag)}`;
         this.submitText.textContent = '更新标签';
         this.cancelEditBtn.style.display = 'inline-flex';
@@ -270,7 +346,13 @@ class HierarchicalTagsManager {
     cancelEditMode() {
         this.currentEditingTagId = null;
         this.clearInputs();
-        this.selectParent(null); // 清空父标签选择
+        this.selectParent(null);
+
+        // [修改] 重置表单开关为默认开启状态
+        if (this.formVisibilityToggle) {
+            this.formVisibilityToggle.checked = true;
+        }
+
         this.formTitle.textContent = '添加新标签';
         this.submitText.textContent = '保存到数据库';
         this.cancelEditBtn.style.display = 'none';

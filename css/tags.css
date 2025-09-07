@@ -533,3 +533,112 @@ li {
         flex-direction: column;
     }
 }
+
+/* [新增] 标签树中可见性开关的样式 */
+.tree-actions {
+    /* 微调，让开关和按钮垂直居中 */
+    align-items: center;
+}
+
+.tree-visibility-toggle {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-right: 8px;
+    /* 和其他按钮保持间距 */
+}
+
+.tree-visibility-toggle .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--border-color);
+    border-radius: 10px;
+    transition: background-color var(--transition-fast);
+}
+
+.tree-visibility-toggle .toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 2px;
+    left: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+}
+
+.tree-visibility-toggle input:checked+.toggle-switch {
+    background-color: var(--primary-color);
+}
+
+.tree-visibility-toggle input:checked+.toggle-switch::before {
+    transform: translateX(16px);
+}
+
+.tree-visibility-toggle input {
+    display: none;
+}
+
+/* [新增] 当标签被隐藏时，在管理页面给它一个特殊的样式 */
+.tree-item.is-hidden .tree-label,
+.tree-item.is-hidden .tree-info {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+/* [新增] 表单中可见性开关的样式 */
+.form-visibility-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius);
+}
+
+.form-visibility-control label {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-visibility-control .toggle-container {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    cursor: pointer;
+}
+
+.form-visibility-control input {
+    display: none;
+}
+
+.form-visibility-control .toggle-switch-bg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: var(--border-color);
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.form-visibility-control .toggle-switch-handle {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 2px;
+    left: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+}
+
+.form-visibility-control input:checked+.toggle-switch-bg {
+    background-color: var(--primary-color);
+}
+
+.form-visibility-control input:checked~.toggle-switch-handle {
+    transform: translateX(20px);
+}

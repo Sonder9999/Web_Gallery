@@ -166,7 +166,7 @@
 TODO:
 https://github.com/Sonder9999/Web_Gallery 这是我的网站的代码,
 现在我想增加功能,我应该用怎样的实现方式,列举几种解决方案,例如可以在数据库里加一个flag等
-- logo和sticks文件在gallery,角色立绘(时光流逝)主页不显示,tags分类界面显示
+<!-- - logo和sticks文件在gallery,角色立绘(时光流逝)主页不显示,tags分类界面显示 -->
 <!-- - 单个图片的显示与隐藏 -->
 <!-- - 单个tags的显示与隐藏 -->
 <!-- - tags页面的显示标签(例如夏川爱华,yumemirudanshi)这两个是一样的,隐藏夏川爱华或者yumemirudanshi -->

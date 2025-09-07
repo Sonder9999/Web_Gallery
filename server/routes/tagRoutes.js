@@ -149,7 +149,8 @@ router.get('/tags', async (req, res) => {
 });
 // 2. 添加新标签（支持层级）(POST /api/tags)
 router.post('/tags', async (req, res) => {
-    const { primary_name_en, aliases, parent_id } = req.body;
+    // [修改] 增加 is_hidden
+    const { primary_name_en, aliases, parent_id, is_hidden } = req.body;
     if (!primary_name_en || !aliases || !Array.isArray(aliases) || aliases.length === 0) {
         return res.status(400).json({ message: '缺少必要字段或别名数组为空' });
     }
@@ -160,8 +161,9 @@ router.post('/tags', async (req, res) => {
         connection = await mysql.createConnection(dbConfig);
         await connection.beginTransaction();
         const [tagResult] = await connection.execute(
-            'INSERT INTO tags (name, primary_name_en, parent_id) VALUES (?, ?, ?)',
-            [primaryDisplayName, primary_name_en, parent_id || null]
+            // [修改] 在 INSERT 语句中加入 is_hidden
+            'INSERT INTO tags (name, primary_name_en, parent_id, is_hidden) VALUES (?, ?, ?, ?)',
+            [primaryDisplayName, primary_name_en, parent_id || null, is_hidden ? 1 : 0]
         );
         const tagId = tagResult.insertId;
         for (const alias of aliases) {
@@ -182,10 +184,12 @@ router.post('/tags', async (req, res) => {
         if (connection) await connection.end();
     }
 });
+
 // 3. 更新标签（支持层级）(PUT /api/tags/:id)
 router.put('/tags/:id', async (req, res) => {
     const { id } = req.params;
-    const { primary_name_en, aliases, parent_id } = req.body;
+    // [修改] 增加 is_hidden
+    const { primary_name_en, aliases, parent_id, is_hidden } = req.body;
     if (!primary_name_en || !aliases || !Array.isArray(aliases)) {
         return res.status(400).json({ message: '缺少必要字段' });
     }
@@ -196,8 +200,9 @@ router.put('/tags/:id', async (req, res) => {
         connection = await mysql.createConnection(dbConfig);
         await connection.beginTransaction();
         await connection.execute(
-            'UPDATE tags SET name = ?, primary_name_en = ?, parent_id = ? WHERE id = ?',
-            [primaryDisplayName, primary_name_en, parent_id || null, id]
+            // [修改] 在 UPDATE 语句中加入 is_hidden
+            'UPDATE tags SET name = ?, primary_name_en = ?, parent_id = ?, is_hidden = ? WHERE id = ?',
+            [primaryDisplayName, primary_name_en, parent_id || null, is_hidden ? 1 : 0, id]
         );
         await connection.execute('DELETE FROM tag_aliases WHERE tag_id = ?', [id]);
         for (const alias of aliases) {
