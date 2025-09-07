@@ -1,4 +1,4 @@
-// scripts/tags-gallery.js - (已修复图片统计逻辑，现在会统计所有图片)
+// scripts/tags-gallery.js - (已修复瀑布流、动画和隐藏标签的显示逻辑)
 
 class TagsGallery {
     constructor() {
@@ -19,6 +19,7 @@ class TagsGallery {
 
             const allTags = this.flattenTags(tagsTree);
             const detailedTags = await this.fetchTagDetails(allTags);
+            // 筛选条件不变：只要总数>0就应该处理
             const tagsWithImages = detailedTags.filter(tag => tag.imageCount > 0);
 
             this.shuffleArray(tagsWithImages);
@@ -33,23 +34,16 @@ class TagsGallery {
     }
 
     async fetchTagDetails(tags) {
+        // ... (此函数逻辑是正确的，保持不变) ...
         const tagPromises = tags.map(async (tag) => {
             try {
                 const imagesResponse = await fetch(`${this.API_BASE_URL}/tags/${tag.id}/images`);
                 if (!imagesResponse.ok) return { ...tag, imageCount: 0, coverImage: null };
-
                 const images = await imagesResponse.json();
-
-                // [BUG修复]
-                // 1. imageCount 统计所有关联图片的数量
-                const totalImageCount = images.length;
-
-                // 2. coverImage 只从可见的图片中选择
                 const visibleImages = images.filter(img => !img.is_hidden);
-
                 return {
                     ...tag,
-                    imageCount: totalImageCount, // 使用总数
+                    imageCount: images.length,
                     coverImage: visibleImages.length > 0 ? visibleImages[Math.floor(Math.random() * visibleImages.length)] : null
                 };
             } catch (e) {
@@ -71,11 +65,11 @@ class TagsGallery {
     }
 
     renderTags(tags) {
+        // ... (此函数保持不变) ...
         if (!tags || tags.length === 0) {
             this.container.innerHTML = '<p>没有找到任何带图片的标签。</p>';
             return;
         }
-
         const fragment = document.createDocumentFragment();
         tags.forEach(tag => {
             const card = this.createTagCard(tag);
@@ -88,19 +82,11 @@ class TagsGallery {
     }
 
     createTagCard(tag) {
-        // [修改] 即使没有可见的封面图片，只要图片总数 > 0，卡片也应该显示
-        if (tag.imageCount === 0) {
-            return null;
-        }
+        if (tag.imageCount === 0) return null;
 
         const card = document.createElement('a');
         card.className = 'tag-card';
         card.href = `/index.html?search=${encodeURIComponent(this.getTagName(tag))}`;
-
-        // 如果有可见的封面图，则使用它；否则使用一个默认的灰色背景
-        const backgroundStyle = tag.coverImage
-            ? `background-image: url('${tag.coverImage.filepath.replace(/\\/g, '/')}')`
-            : 'background-color: #2c3e50;';
 
         const isActive = !tag.is_hidden;
         const visibilityToggleHTML = this.enableVisibilityControls ? `
@@ -110,11 +96,21 @@ class TagsGallery {
             </div>
         ` : '';
 
+        // [核心修复]
+        // 如果有封面图，就创建 <img> 标签
+        // 如果没有，就给 card 添加 'no-cover' 类，让 CSS 来处理样式
+        let imageHTML = '';
+        if (tag.coverImage) {
+            imageHTML = `<img src="${tag.coverImage.filepath.replace(/\\/g, '/')}" class="card-image" alt="${this.getTagName(tag)}">`;
+        } else {
+            card.classList.add('no-cover');
+        }
+
         card.innerHTML = `
             ${visibilityToggleHTML}
-            <div class="card-background" style="${backgroundStyle}"></div>
+            ${imageHTML}
             <div class="card-overlay"></div>
-            <div class="card-content" style="min-height: ${this.getRandomHeight()}px;">
+            <div class="card-content">
                 <div class="tag-name">${this.getTagName(tag)}</div>
                 <div class="image-count">
                     <i class="fa-solid fa-image"></i>
@@ -135,6 +131,7 @@ class TagsGallery {
         return card;
     }
 
+    // ... (toggleTagVisibility, getTagName, showLoading, shuffleArray 等函数保持不变) ...
     async toggleTagVisibility(tagId, shouldBeHidden, cardElement) {
         const toggle = cardElement.querySelector('.toggle-switch');
         try {
@@ -147,7 +144,7 @@ class TagsGallery {
             if (!response.ok) throw new Error(result.message || '更新失败');
             toggle.classList.remove('active');
             cardElement.classList.add('fading-out');
-            setTimeout(() => cardElement.remove(), 400);
+            setTimeout(() => cardElement.remove(), 400); // 动画时长为 0.4s
         } catch (error) {
             console.error('更新标签可见性失败:', error);
             alert(`操作失败: ${error.message}`);
@@ -162,9 +159,7 @@ class TagsGallery {
         return tag.primary_name_en;
     }
 
-    getRandomHeight() {
-        return Math.floor(Math.random() * (280 - 180 + 1)) + 180;
-    }
+    getRandomHeight() { return 0; }
 
     showLoading(isLoading) {
         this.loadingIndicator.style.display = isLoading ? 'flex' : 'none';
