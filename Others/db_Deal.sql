@@ -2,3 +2,11 @@
 -- 由于设置了 ON DELETE CASCADE，关联的 image_tags 记录会自动删除
 
 DELETE FROM images WHERE id BETWEEN 311 AND 337;
+
+
+-- 为 images 表添加 is_hidden 字段，并设置默认值为 0 (显示)
+ALTER TABLE `images`
+ADD COLUMN `is_hidden` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0 for visible, 1 for hidden';
+
+-- 为 is_hidden 字段添加索引，以优化查询性能
+ALTER TABLE `images` ADD INDEX `idx_is_hidden` (`is_hidden`);

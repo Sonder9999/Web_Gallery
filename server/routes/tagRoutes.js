@@ -262,14 +262,16 @@ router.get('/tags/:id/path', async (req, res) => {
         if (connection) await connection.end();
     }
 });
-// 获取所有图片 (GET /api/images)
+// [MODIFIED] 获取所有图片 (GET /api/images) - 现在只返回 is_hidden = 0 的图片
 router.get('/images', async (req, res) => {
     let connection;
     try {
         connection = await mysql.createConnection(dbConfig);
         const [images] = await connection.execute(`
-            SELECT id, filename, filepath, filesize, width, height, aspect_ratio, uploaded_at
-            FROM images ORDER BY uploaded_at DESC
+            SELECT id, filename, filepath, filesize, width, height, aspect_ratio, uploaded_at, is_hidden
+            FROM images
+            WHERE is_hidden = 0
+            ORDER BY uploaded_at DESC
         `);
         res.json(images);
     } catch (error) {
@@ -279,6 +281,33 @@ router.get('/images', async (req, res) => {
         if (connection) await connection.end();
     }
 });
+
+// [NEW] 更新单个图片的显示状态 (PUT /api/images/:id/visibility)
+router.put('/images/:id/visibility', async (req, res) => {
+    const { id } = req.params;
+    const { is_hidden } = req.body;
+
+    if (typeof is_hidden !== 'boolean') {
+        return res.status(400).json({ message: 'is_hidden 必须是一个布尔值' });
+    }
+
+    let connection;
+    try {
+        connection = await mysql.createConnection(dbConfig);
+        await connection.execute(
+            'UPDATE images SET is_hidden = ? WHERE id = ?',
+            [is_hidden ? 1 : 0, id]
+        );
+        res.json({ success: true, message: '图片可见性更新成功' });
+    } catch (error) {
+        console.error('更新图片可见性失败:', error);
+        res.status(500).json({ message: '服务器错误: ' + error.message });
+    } finally {
+        if (connection) await connection.end();
+    }
+});
+
+
 // 获取单个图片的标签 (GET /api/images/:id/tags)
 router.get('/images/:id/tags', async (req, res) => {
     let connection;

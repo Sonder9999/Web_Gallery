@@ -850,3 +850,50 @@
         background-color: rgba(0, 0, 0, 0.95);
     }
 }
+
+/* [新增] 弹窗中可见性开关的样式 */
+.modal-actions .toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+}
+
+.modal-actions .toggle-item span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.modal-actions .toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: var(--border-color);
+    border-radius: 11px;
+    transition: background-color var(--transition-fast);
+}
+
+.modal-actions .toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    top: 2px;
+    left: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+}
+
+.modal-actions .toggle-switch.active {
+    background-color: var(--primary-color);
+}
+
+.modal-actions .toggle-switch.active::before {
+    transform: translateX(18px);
+}

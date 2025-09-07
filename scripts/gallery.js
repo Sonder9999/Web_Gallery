@@ -12,6 +12,9 @@ class Gallery {
         this.currentPage = 0;        // 当前加载的页码
         this.isLoading = false;      // 防止重复加载的标志
 
+        // [新增] 代码级功能开关：设为 true 才会显示图片详情页的“主页显示”开关
+        this.enableVisibilityControls = true;
+
         // 显示设置状态
         this.displaySettings = {
             gallery: {
@@ -260,6 +263,9 @@ class Gallery {
         const modal = document.getElementById('image-modal');
         const closeBtn = document.querySelector('.modal-close');
         const downloadBtn = document.getElementById('download-btn');
+        const visibilityControl = document.getElementById('visibility-control-container');
+        const visibilityToggle = document.getElementById('image-visibility-toggle');
+
         const closeModal = () => {
             modal.classList.add('closing');
             setTimeout(() => {
@@ -270,6 +276,7 @@ class Gallery {
         closeBtn.addEventListener('click', closeModal);
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('show')) closeModal(); });
+
         downloadBtn.addEventListener('click', () => {
             const img = document.getElementById('modal-image');
             const link = document.createElement('a');
@@ -277,19 +284,39 @@ class Gallery {
             link.download = img.alt || 'image';
             link.click();
         });
+
+        // [新增] 为开关绑定点击事件
+        if (this.enableVisibilityControls && visibilityToggle) {
+            visibilityControl.style.display = 'block'; // 根据代码开关决定是否显示
+            visibilityToggle.parentElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const imageId = parseInt(visibilityToggle.dataset.imageId, 10);
+                // `active` class 表示显示，所以如果它当前是 active，那么新的 is_hidden 状态应该是 true
+                const newIsHiddenState = visibilityToggle.classList.contains('active');
+                this.toggleImageVisibility(imageId, newIsHiddenState);
+            });
+        }
     }
 
     openImageModal(imagePath, fileName, folderPath, imageData = null) {
         const modal = document.getElementById('image-modal');
         const img = document.getElementById('modal-image');
+        const visibilityToggle = document.getElementById('image-visibility-toggle');
 
-        // 设置基本信息
         img.src = imagePath;
         img.alt = fileName;
         document.getElementById('modal-title').textContent = fileName;
         document.getElementById('modal-path').textContent = folderPath;
 
-        // 获取图片尺寸信息
+        if (this.enableVisibilityControls && imageData) {
+            visibilityToggle.dataset.imageId = imageData.id;
+            visibilityToggle.dataset.imagePath = imagePath; // 保存路径用于后续移除
+            // 如果 imageData.is_hidden 是 1 或 true，则开关为关闭状态 (不 active)
+            // 否则为开启状态 (active)
+            visibilityToggle.classList.toggle('active', !imageData.is_hidden);
+        }
+
+        // ... (updateDimensions 和 img.onload 的逻辑保持不变) ...
         const updateDimensions = () => {
             let width, height;
             if (imageData && imageData.width && imageData.height) {
@@ -305,17 +332,10 @@ class Gallery {
             document.getElementById('modal-size').textContent = dimensions;
             document.getElementById('modal-ratio').textContent = ratio;
 
-            // 加载标签（如果有图片数据）
             if (imageData && imageData.id) {
-                console.log('准备加载标签，图片数据:', imageData);
                 const tagsContainer = document.querySelector('#modal-tags .tags-container');
-                console.log('标签容器元素:', tagsContainer);
                 this.loadImageTags(imageData.id, tagsContainer);
-            } else {
-                console.log('无法加载标签，缺少图片数据或ID:', imageData);
             }
-
-            // 更新模态框显示设置
             this.updateModalDisplay();
         };
 
@@ -369,6 +389,42 @@ class Gallery {
                 <span class="tag">示例标签1</span>
                 <span class="tag">示例标签2</span>
             `;
+        }
+    }
+
+    // [新增] 切换图片可见性的核心函数
+    async toggleImageVisibility(imageId, shouldBeHidden) {
+        const toggle = document.getElementById('image-visibility-toggle');
+        try {
+            const response = await fetch(`${this.API_BASE_URL}/images/${imageId}/visibility`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_hidden: shouldBeHidden }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || '更新失败');
+
+            // 更新开关的UI状态
+            toggle.classList.toggle('active', !shouldBeHidden);
+
+            // 如果图片被设为隐藏，则立即从主画廊移除并关闭弹窗
+            if (shouldBeHidden) {
+                this.originalImages = this.originalImages.filter(img => img.id !== imageId);
+                this.currentSourceImages = this.currentSourceImages.filter(img => img.id !== imageId);
+                this.allImages = this.allImages.filter(img => img.id !== imageId);
+
+                const itemToRemove = document.querySelector(`.gallery-item img[src="${toggle.dataset.imagePath}"]`)?.closest('.gallery-item');
+                if (itemToRemove) {
+                    itemToRemove.remove();
+                }
+
+                this.updateLoadedCount();
+                document.querySelector('.modal-close').click(); // 关闭弹窗
+            }
+
+        } catch (error) {
+            console.error('更新图片可见性失败:', error);
+            alert(`操作失败: ${error.message}`);
         }
     }
 
