@@ -41,10 +41,10 @@ function parseSearchQuery(query) {
 
 
 // --- [核心修改] 更新搜索路由以支持高级搜索 ---
+// [核心修复] 更新搜索路由以在结果中包含 is_hidden 字段
 router.get('/search', async (req, res) => {
     const query = req.query.q;
     if (!query) {
-        // 如果查询为空，返回所有图片
         return res.redirect('/api/images');
     }
 
@@ -54,8 +54,9 @@ router.get('/search', async (req, res) => {
     try {
         connection = await mysql.createConnection(dbConfig);
 
+        // [BUG修复] 在 SELECT 语句中添加 i.is_hidden
         let sql = `
-            SELECT DISTINCT i.id, i.filename, i.filepath, i.width, i.height, i.aspect_ratio, i.uploaded_at
+            SELECT DISTINCT i.id, i.filename, i.filepath, i.width, i.height, i.aspect_ratio, i.uploaded_at, i.is_hidden
             FROM images i
             LEFT JOIN image_tags it ON i.id = it.image_id
             LEFT JOIN tag_aliases ta ON it.tag_id = ta.tag_id
@@ -63,38 +64,28 @@ router.get('/search', async (req, res) => {
         `;
         const params = [];
 
-        // 1. 处理强制包含 (+)
+        // (强制、排除、或逻辑保持不变)
         if (forced.length > 0) {
             forced.forEach(term => {
-                sql += ` AND (i.filename LIKE ? OR ta.name LIKE ?)`;
+                sql += ` AND i.id IN (SELECT i2.id FROM images i2 LEFT JOIN image_tags it2 ON i2.id = it2.image_id LEFT JOIN tag_aliases ta2 ON it2.tag_id = ta2.tag_id WHERE i2.filename LIKE ? OR ta2.name LIKE ?)`;
                 params.push(`%${term}%`, `%${term}%`);
             });
         }
-
-        // 2. 处理排除 (-)
         if (excluded.length > 0) {
             excluded.forEach(term => {
-                sql += ` AND i.id NOT IN (
-                    SELECT i2.id FROM images i2
-                    LEFT JOIN image_tags it2 ON i2.id = it2.image_id
-                    LEFT JOIN tag_aliases ta2 ON it2.tag_id = ta2.tag_id
-                    WHERE i2.filename LIKE ? OR ta2.name LIKE ?
-                )`;
+                sql += ` AND i.id NOT IN (SELECT i2.id FROM images i2 LEFT JOIN image_tags it2 ON i2.id = it2.image_id LEFT JOIN tag_aliases ta2 ON it2.tag_id = ta2.tag_id WHERE i2.filename LIKE ? OR ta2.name LIKE ?)`;
                 params.push(`%${term}%`, `%${term}%`);
             });
         }
-
-        // 3. 处理 OR 逻辑
         if (orGroups.length > 0 && orGroups[0].length > 0) {
             const orConditions = orGroups[0].map(() => `(i.filename LIKE ? OR ta.name LIKE ?)`).join(' OR ');
-            sql += ` AND (${orConditions})`;
+            sql += ` AND i.id IN (SELECT i2.id FROM images i2 LEFT JOIN image_tags it2 ON i2.id = it2.image_id LEFT JOIN tag_aliases ta2 ON it2.tag_id = ta2.tag_id WHERE ${orConditions})`;
             orGroups[0].forEach(term => {
                 params.push(`%${term}%`, `%${term}%`);
             });
         }
 
         sql += ` ORDER BY i.uploaded_at DESC;`;
-
         const [results] = await connection.execute(sql, params);
         res.json(results);
 
