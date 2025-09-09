@@ -1,0 +1,152 @@
+/* 图片放大镜样式 */
+
+/* 选择框样式 */
+.magnifier-selection-box {
+    /* 基础样式通过 JavaScript 动态设置 */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    cursor: none;
+}
+
+/* 放大显示框样式 */
+.magnifier-display-box {
+    /* 基础样式通过 JavaScript 动态设置 */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.magnifier-display-box canvas {
+    display: block;
+}
+
+/* 为支持放大镜的图片添加指针样式 */
+.magnifier-enabled {
+    cursor: crosshair !important;
+}
+
+/* 放大镜激活时的图片样式 */
+.magnifier-active {
+    cursor: none !important;
+}
+
+/* 选择框动画效果 */
+.magnifier-selection-box {
+    animation: selection-pulse 2s ease-in-out infinite;
+}
+
+@keyframes selection-pulse {
+
+    0%,
+    100% {
+        border-color: #007bff;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    50% {
+        border-color: #0056b3;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3);
+    }
+}
+
+/* 响应式设计 - 在小屏幕设备上隐藏放大镜 */
+@media (max-width: 768px) {
+
+    .magnifier-selection-box,
+    .magnifier-display-box {
+        display: none !important;
+    }
+
+    .magnifier-enabled,
+    .magnifier-active {
+        cursor: default !important;
+    }
+}
+
+@media (hover: none) {
+
+    /* 在触摸设备上隐藏放大镜 */
+    .magnifier-selection-box,
+    .magnifier-display-box {
+        display: none !important;
+    }
+
+    .magnifier-enabled,
+    .magnifier-active {
+        cursor: default !important;
+    }
+}
+
+/* 放大镜加载状态 */
+.magnifier-display-box.loading {
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.magnifier-display-box.loading::after {
+    content: "";
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: magnifier-spin 1s linear infinite;
+}
+
+@keyframes magnifier-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+
+    .magnifier-selection-box,
+    .magnifier-display-box {
+        border-width: 4px !important;
+    }
+
+    .magnifier-display-box {
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8) !important;
+    }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+
+    .magnifier-selection-box,
+    .magnifier-display-box {
+        transition: opacity 0ms !important;
+        animation: none !important;
+    }
+}
+
+/* 选择框边框样式变体 */
+.magnifier-selection-box.dashed {
+    border-style: dashed;
+}
+
+.magnifier-selection-box.dotted {
+    border-style: dotted;
+}
+
+/* 显示框圆角变体 */
+.magnifier-display-box.rounded {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.magnifier-display-box.circular {
+    border-radius: 50%;
+    overflow: hidden;
+}

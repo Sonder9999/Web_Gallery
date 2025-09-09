@@ -38,6 +38,9 @@ class Gallery {
         this.showSettingsPanel = false; // 设为false可完全隐藏显示设置面板和按钮
 
         this.init();
+
+        // 初始化放大镜
+        this.initMagnifier();
     }
 
     async init() {
@@ -45,6 +48,36 @@ class Gallery {
         this.bindEvents();
         this.initSettingsPanelVisibility();
         await this.loadImagesFromAPI(); // 程序入口：从API加载数据
+    }
+
+    initMagnifier() {
+        // 创建放大镜实例
+        this.magnifier = new ImageMagnifier({
+            // 选择框配置 - 这是在图片上显示的方形选择区域
+            selectionSize: 150,                    // 选择框大小（方形，150x150像素）
+            selectionBorderWidth: 2,               // 选择框边框宽度
+            selectionBorderColor: '#007bff',       // 选择框边框颜色
+            selectionBorderOpacity: 0.8,           // 选择框边框透明度
+            selectionBackgroundOpacity: 0.1,       // 选择框背景透明度
+
+            // 放大显示配置 - 这是在鼠标旁边显示的放大内容
+            zoomLevel: 2,                          // 放大倍数（2倍 = 150x150 -> 300x300）
+            displayBorderWidth: 3,                 // 显示框边框宽度
+            displayBorderColor: '#007bff',         // 显示框边框颜色
+            displayBackgroundColor: '#ffffff',     // 显示框背景颜色
+            displayShadowBlur: 15,                 // 显示框阴影模糊度
+
+            // 动画配置
+            fadeSpeed: 200,                        // 淡入淡出速度
+
+            // 位置配置
+            offsetX: 20,                           // 显示框与鼠标的X轴偏移
+            offsetY: 20,                           // 显示框与鼠标的Y轴偏移
+
+            // 缩放限制
+            minZoom: 1.2,                          // 最小放大倍数
+            maxZoom: 8                             // 最大放大倍数
+        });
     }
 
     /**
@@ -266,13 +299,45 @@ class Gallery {
         const visibilityControl = document.getElementById('visibility-control-container');
         const visibilityToggle = document.getElementById('image-visibility-toggle');
 
+        // 当模态框显示时，为模态框中的图片启用放大镜
+        modal.addEventListener('transitionend', (e) => {
+            if (e.target === modal && modal.classList.contains('show')) {
+                const modalImg = modal.querySelector('#modal-image');
+                if (modalImg && modalImg.complete) {
+                    // 添加放大镜样式类
+                    modalImg.classList.add('magnifier-enabled');
+                    // 激活放大镜
+                    this.magnifier.activate(modalImg);
+                }
+            }
+        });
+
+        // 当模态框关闭时，停用放大镜
         const closeModal = () => {
+            const modalImg = modal.querySelector('#modal-image');
+            if (modalImg) {
+                modalImg.classList.remove('magnifier-enabled', 'magnifier-active');
+                this.magnifier.deactivate(modalImg);
+            }
+
+            modal.classList.remove('show');
+            modal.classList.add('closing');
+
+            setTimeout(() => {
+                modal.classList.remove('closing');
+                modal.style.display = 'none';
+                modalImage.src = '';
+            }, 300);
+        };
+
+/*         const closeModal = () => {
             modal.classList.add('closing');
             setTimeout(() => {
                 modal.style.display = 'none';
                 modal.classList.remove('closing', 'show');
             }, 300);
-        };
+        }; */
+
         closeBtn.addEventListener('click', closeModal);
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('show')) closeModal(); });

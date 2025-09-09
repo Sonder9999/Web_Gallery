@@ -13,6 +13,7 @@
     <!-- 搜索功能样式 -->
     <link rel="stylesheet" href="css/search.css">
     <link rel="stylesheet" href="css/filter.css">
+    <link rel="stylesheet" href="css/magnifier.css">
 </head>
 <body>
     <!-- 顶部导航栏 -->
@@ -199,7 +200,48 @@
                             </label>
                         </div>
                     </div>
-                </div>                <div class="settings-actions">
+
+                    <!-- 在显示设置面板中添加放大镜设置 -->
+                    <div class="settings-section">
+                        <h4>放大镜设置</h4>
+                        <div class="settings-options">
+                            <label class="setting-item">
+                                <input type="checkbox" id="enable-magnifier" checked>
+                                <span>启用放大镜</span>
+                            </label>
+                            <label class="setting-item range-item">
+                                <span>选择框大小</span>
+                                <input type="range" id="selection-size" min="100" max="300" value="150" step="10">
+                                <span class="range-value">150px</span>
+                            </label>
+                            <label class="setting-item range-item">
+                                <span>放大倍数</span>
+                                <input type="range" id="zoom-level" min="1.2" max="5" value="2" step="0.1">
+                                <span class="range-value">2.0x</span>
+                            </label>
+                            <label class="setting-item">
+                                <span>选择框样式</span>
+                                <select id="selection-style">
+                                    <option value="solid">实线边框</option>
+                                    <option value="dashed">虚线边框</option>
+                                    <option value="dotted">点状边框</option>
+                                </select>
+                            </label>
+                            <label class="setting-item">
+                                <span>显示框样式</span>
+                                <select id="display-style">
+                                    <option value="square">方形</option>
+                                    <option value="rounded">圆角</option>
+                                    <option value="circular">圆形</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <div class="settings-actions">
                     <button id="reset-settings-btn" class="control-btn secondary">
                         <i class="fa-solid fa-rotate-left"></i>
                         重置默认
@@ -209,6 +251,7 @@
                         确定
                     </button>
                 </div>
+
             </div>
         </div>
 
@@ -272,6 +315,7 @@
     </main>
 
     <!-- JavaScript -->
+    <script src="scripts/magnifier.js"></script>
     <script src="scripts/nav.js"></script>
     <script src="scripts/gallery.js"></script>
     <script src="scripts/search.js"></script>
