@@ -176,7 +176,7 @@ https://github.com/Sonder9999/Web_Gallery 这是我的网站的代码,
 -
 
 TODO:
+<!-- - en路径文件名bug -->
 - 放大镜效果
-- 英文与中文切换(文件名,数据库)
-- en路径文件名bug
 - bmp与视频上传
+- 英文与中文切换(文件名,数据库)

@@ -1,4 +1,4 @@
-// server/routes/uploadRoutes.js - (最终修复版) 修正了文件名清理逻辑，确保正确处理中文字符
+// server/routes/uploadRoutes.js - (最终修复版) 统一并强化了标签查找逻辑，确保严格遵守语言设置
 
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -10,8 +10,8 @@ const { imageSize: sizeOf } = require('image-size');
 
 const router = express.Router();
 
-const FILENAME_LANGUAGE = 'zh'; // 生成文件名时优先使用的语言
-const FOLDER_NAME_LANGUAGE = 'zh'; // 生成文件夹名时优先使用的语言
+const FILENAME_LANGUAGE = 'en'; // 生成文件名时优先使用的语言
+const FOLDER_NAME_LANGUAGE = 'en'; // 生成文件夹名时优先使用的语言
 const STORAGE_CONFIG = require('../config/storage');
 
 const dbConfig = {
@@ -31,57 +31,71 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 /**
- * [核心修复] 更健壮、更精确的文件名生成函数
+ * [新增] 统一的、健壮的标签信息查找函数
+ * @param {string} tagName - 从客户端传入的标签名
+ * @returns {Promise<{id: number, primary_name_en: string, aliases: Array<{lang: string, name: string}>}|null>}
+ */
+async function findTagInfo(tagName) {
+    const cleanedClientTag = tagName.trim().replace(/[:：\s]/g, '');
+    if (!cleanedClientTag) return null;
+
+    const query = `
+        SELECT t.id, t.primary_name_en
+        FROM tags t
+        JOIN tag_aliases ta ON t.id = ta.tag_id
+        WHERE REPLACE(REPLACE(REPLACE(ta.name, ':', ''), '：', ''), ' ', '') = ?
+        LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [cleanedClientTag]);
+
+    if (rows.length > 0) {
+        const tag = rows[0];
+        const [aliases] = await pool.execute('SELECT lang, name FROM tag_aliases WHERE tag_id = ?', [tag.id]);
+        tag.aliases = aliases;
+        return tag;
+    }
+
+    return null;
+}
+
+/**
+ * [核心最终修复] 使用统一的查找逻辑来生成文件名
  */
 async function generateFilenameFromTags(tagNames, originalExtension) {
     console.log('[文件名生成] 开始:', { tagNames, originalExtension });
-
     let nameParts = [];
+
     if (tagNames && tagNames.length > 0) {
         for (const tagName of tagNames) {
+            const tagInfo = await findTagInfo(tagName);
             let partFound = false;
-            // 查找标签是否存在
-            const [aliasRows] = await pool.execute('SELECT tag_id FROM tag_aliases WHERE name = ?', [tagName]);
 
-            if (aliasRows.length > 0) {
-                const tagId = aliasRows[0].tag_id;
-                // 并行获取主名和所有别名
-                const [[primaryNameRow], aliasRowsForTag] = await Promise.all([
-                    pool.execute('SELECT primary_name_en FROM tags WHERE id = ?', [tagId]),
-                    pool.execute('SELECT lang, name FROM tag_aliases WHERE tag_id = ?', [tagId])
-                ]);
-
-                // 优先使用指定语言的别名
-                const langAlias = aliasRowsForTag.find(a => a.lang === FILENAME_LANGUAGE);
+            if (tagInfo) {
+                const langAlias = tagInfo.aliases.find(a => a.lang === FILENAME_LANGUAGE);
                 if (langAlias && langAlias.name) {
                     nameParts.push(langAlias.name);
-                    console.log(`[文件名生成] 找到 "${tagName}" 的 ${FILENAME_LANGUAGE} 别名: "${langAlias.name}"`);
+                    console.log(`[文件名生成] -> 找到 "${tagName}" 的 ${FILENAME_LANGUAGE} 别名: "${langAlias.name}"`);
                     partFound = true;
-                }
-                // 其次使用主英文名作为备用
-                else if (primaryNameRow && primaryNameRow.primary_name_en) {
-                    nameParts.push(primaryNameRow.primary_name_en);
-                    console.log(`[文件名生成] 未找到别名，使用 primary_name_en: "${primaryNameRow.primary_name_en}"`);
+                } else if (tagInfo.primary_name_en) {
+                    nameParts.push(tagInfo.primary_name_en);
+                    console.log(`[文件名生成] -> 未找到 ${FILENAME_LANGUAGE} 别名，使用 primary_name_en: "${tagInfo.primary_name_en}"`);
                     partFound = true;
                 }
             }
 
-            // 如果标签在数据库中完全不存在，则使用原始标签名（并准备清理）
             if (!partFound) {
                 nameParts.push(tagName);
-                console.log(`[文件名生成] 标签 "${tagName}" 不存在，使用原始名称`);
+                console.log(`[文件名生成] -> 标签 "${tagName}" 在数据库中未找到，使用原始名称`);
             }
         }
     }
     console.log('[文件名生成] 组件 (清理前):', nameParts);
 
-    // 对每个部分进行严格清理
     let baseName = nameParts.map(part =>
         part.toLowerCase()
-            // [关键修复] 保留中文、字母、数字、下划线、连字符
             .replace(/[^\w\u4e00-\u9fa5-]/g, ' ')
-            .trim() // 清理首尾空格
-            .replace(/\s+/g, '_') // 将所有空白（包括多个空格）替换为单个下划线
+            .trim()
+            .replace(/\s+/g, '_')
     ).join('_');
 
     if (!baseName) baseName = `image_${Date.now()}`;
@@ -90,30 +104,32 @@ async function generateFilenameFromTags(tagNames, originalExtension) {
     const shortId = crypto.randomBytes(3).toString('hex');
     const finalFilename = `${baseName}_${shortId}${originalExtension}`;
     console.log('[文件名生成] 最终文件名:', finalFilename);
-
     return finalFilename;
 }
 
-// --- 其他函数 (保持不变) ---
-
+/**
+ * [核心最终修复] 使用统一的查找逻辑来生成文件夹名
+ */
 async function generateFolderPathFromTags(tagNames) {
     if (!STORAGE_CONFIG.enableTagBasedFolders || !tagNames || tagNames.length === 0) {
         return STORAGE_CONFIG.noTagsFolder || 'others';
     }
     const folderTags = tagNames.slice(0, STORAGE_CONFIG.folderDepth);
     const folderNames = [];
+
     for (const tagName of folderTags) {
-        let folderName = tagName;
-        try {
-            const [aliasRows] = await pool.execute('SELECT tag_id FROM tag_aliases WHERE name = ?', [tagName]);
-            if (aliasRows.length > 0) {
-                const tagId = aliasRows[0].tag_id;
-                const [translateRows] = await pool.execute('SELECT name FROM tag_aliases WHERE tag_id = ? AND lang = ?', [tagId, FOLDER_NAME_LANGUAGE]);
-                if (translateRows.length > 0) folderName = translateRows[0].name;
+        let folderName = tagName; // 默认值
+        const tagInfo = await findTagInfo(tagName);
+
+        if (tagInfo) {
+            const langAlias = tagInfo.aliases.find(a => a.lang === FOLDER_NAME_LANGUAGE);
+            if (langAlias && langAlias.name) {
+                folderName = langAlias.name;
+            } else if (tagInfo.primary_name_en) {
+                folderName = tagInfo.primary_name_en; // 备用
             }
-        } catch (error) {
-            console.warn(`[文件存储] 查询标签 "${tagName}" 的别名失败:`, error.message);
         }
+
         if (STORAGE_CONFIG.tagToFolderName.lowercase) folderName = folderName.toLowerCase();
         if (STORAGE_CONFIG.tagToFolderName.replaceSpaces) folderName = folderName.replace(/\s+/g, '_');
         if (STORAGE_CONFIG.tagToFolderName.removeSpecialChars) folderName = folderName.replace(/[^\w\u4e00-\u9fa5_-]/g, '');
@@ -125,27 +141,26 @@ async function generateFolderPathFromTags(tagNames) {
     return folderPath;
 }
 
+
+// --- 其他函数 (保持不变) ---
 async function findOrCreateTag(connection, tagName) {
-    let [aliasRows] = await connection.execute('SELECT tag_id FROM tag_aliases WHERE name = ?', [tagName]);
-    if (aliasRows.length > 0) return aliasRows[0].tag_id;
-    let [tagRows] = await connection.execute('SELECT id FROM tags WHERE name = ?', [tagName]);
-    if (tagRows.length > 0) {
-        const tagId = tagRows[0].id;
-        await connection.execute('INSERT IGNORE INTO tag_aliases (tag_id, name, lang) VALUES (?, ?, ?)', [tagId, tagName, 'zh']);
-        return tagId;
-    }
+    const tagInfo = await findTagInfo(tagName);
+    if (tagInfo) return tagInfo.id;
+
+    // 如果找不到，则创建新标签
     try {
-        const primary_name_en = tagName.toLowerCase().replace(/[^\w-]/g, ' ').trim().replace(/\s+/g, '_') || `tag_${Date.now()}`;
-        const [tagResult] = await connection.execute('INSERT INTO tags (name, primary_name_en) VALUES (?, ?)', [tagName, primary_name_en]);
-        const tagId = tagResult.insertId;
-        await connection.execute('INSERT INTO tag_aliases (tag_id, name, lang) VALUES (?, ?, ?)', [tagId, tagName, 'zh']);
-        return tagId;
+        const cleanedTagNameForPrimary = tagName.trim().replace(/[:：\s]/g, '');
+        const primary_name_en = cleanedTagNameForPrimary.toLowerCase().replace(/[^\w-]/g, ' ').trim().replace(/\s+/g, '_') || `tag_${Date.now()}`;
+        const [tagResult] = await connection.execute('INSERT INTO tags (name, primary_name_en) VALUES (?, ?)', [tagName.trim(), primary_name_en]);
+        const newTagId = tagResult.insertId;
+        await connection.execute('INSERT INTO tag_aliases (tag_id, name, lang) VALUES (?, ?, ?)', [newTagId, tagName.trim(), 'zh']);
+        return newTagId;
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
             console.log(`竞态条件处理：标签 "${tagName}" 已被创建，重新获取中...`);
             await new Promise(resolve => setTimeout(resolve, 50));
-            [tagRows] = await connection.execute('SELECT id FROM tags WHERE name = ?', [tagName]);
-            if (tagRows.length > 0) return tagRows[0].id;
+            const retryTagInfo = await findTagInfo(tagName);
+            if (retryTagInfo) return retryTagInfo.id;
             throw new Error(`在处理竞态条件后，仍然无法找到标签 "${tagName}"`);
         } else {
             throw error;
@@ -158,8 +173,10 @@ async function updateImageInfo(connection, imageId, tagNames, source) {
     await connection.execute('UPDATE images SET source_url = ? WHERE id = ?', [source || '', imageId]);
     if (tagNames && tagNames.length > 0) {
         for (const tagName of tagNames) {
-            const tagId = await findOrCreateTag(connection, tagName.trim());
-            if (tagId) await connection.execute('INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (?, ?)', [imageId, tagId]);
+            if (tagName.trim()) {
+                const tagId = await findOrCreateTag(connection, tagName);
+                if (tagId) await connection.execute('INSERT IGNORE INTO image_tags (image_id, tag_id) VALUES (?, ?)', [imageId, tagId]);
+            }
         }
     }
 }
