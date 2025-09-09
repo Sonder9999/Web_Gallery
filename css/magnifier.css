@@ -23,18 +23,40 @@
     display: block;
 }
 
-/* 为支持放大镜的图片添加指针样式 */
+/* 修复鼠标指针样式 - 只有在启用放大镜且激活时才隐藏光标 */
 .magnifier-enabled {
     cursor: crosshair !important;
 }
 
-/* 放大镜激活时的图片样式 */
+.magnifier-enabled:hover {
+    cursor: crosshair !important;
+}
+
+/* 只有在放大镜真正激活时才隐藏光标 */
 .magnifier-active {
     cursor: none !important;
 }
 
-/* 选择框动画效果 */
-.magnifier-selection-box {
+/* 确保在非放大镜状态下恢复正常光标 */
+img:not(.magnifier-enabled):not(.magnifier-active) {
+    cursor: default;
+}
+
+/* 模态框中的图片默认光标 */
+#modal-image {
+    cursor: default;
+}
+
+#modal-image.magnifier-enabled {
+    cursor: crosshair !important;
+}
+
+#modal-image.magnifier-active {
+    cursor: none !important;
+}
+
+/* 选择框动画效果 - 只在启用时显示 */
+.magnifier-selection-box.enabled {
     animation: selection-pulse 2s ease-in-out infinite;
 }
 
@@ -50,6 +72,34 @@
         border-color: #0056b3;
         box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.3);
     }
+}
+
+/* 选择框边框样式变体 */
+.magnifier-selection-box.solid {
+    border-style: solid;
+}
+
+.magnifier-selection-box.dashed {
+    border-style: dashed;
+}
+
+.magnifier-selection-box.dotted {
+    border-style: dotted;
+}
+
+/* 显示框圆角变体 */
+.magnifier-display-box.square {
+    border-radius: 0;
+}
+
+.magnifier-display-box.rounded {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.magnifier-display-box.circular {
+    border-radius: 50%;
+    overflow: hidden;
 }
 
 /* 响应式设计 - 在小屏幕设备上隐藏放大镜 */
@@ -131,22 +181,12 @@
     }
 }
 
-/* 选择框边框样式变体 */
-.magnifier-selection-box.dashed {
-    border-style: dashed;
+/* 禁用状态下的样式 */
+.magnifier-disabled .magnifier-selection-box,
+.magnifier-disabled .magnifier-display-box {
+    display: none !important;
 }
 
-.magnifier-selection-box.dotted {
-    border-style: dotted;
-}
-
-/* 显示框圆角变体 */
-.magnifier-display-box.rounded {
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.magnifier-display-box.circular {
-    border-radius: 50%;
-    overflow: hidden;
+.magnifier-disabled img {
+    cursor: default !important;
 }

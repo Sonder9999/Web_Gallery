@@ -4,15 +4,14 @@ this.allowUserSettings = true; // 设为false可禁用用户设置面板画廊�
 
 class Gallery {
     constructor() {
-        this.API_BASE_URL = 'http://localhost:3000/api'; // 定义API基础URL
-        this.originalImages = [];    // [新增] 存储从API获取的原始、完整的图片列表
-        this.allImages = [];         // 存储当前用于显示和筛选的图片列表
-        this.displayedImages = [];   // 存储当前已渲染到页面的图片
-        this.batchSize = 20;         // 每次加载的数量
-        this.currentPage = 0;        // 当前加载的页码
-        this.isLoading = false;      // 防止重复加载的标志
+        this.API_BASE_URL = 'http://localhost:3000/api';
+        this.originalImages = [];
+        this.allImages = [];
+        this.displayedImages = [];
+        this.batchSize = 20;
+        this.currentPage = 0;
+        this.isLoading = false;
 
-        // [新增] 代码级功能开关：设为 true 才会显示图片详情页的“主页显示”开关
         this.enableVisibilityControls = true;
 
         // 显示设置状态
@@ -30,54 +29,101 @@ class Gallery {
                 size: false,
                 ratio: true,
                 tags: true
+            },
+            // 新增放大镜设置
+            magnifier: {
+                enabled: true,                // 是否启用放大镜
+                selectionSize: 230,           // 选择框大小
+                zoomLevel: 2.0,               // 放大倍数
+                selectionStyle: 'solid',      // 选择框样式
+                displayStyle: 'square'        // 显示框样式
             }
         };
 
-        // 主开关设置 - 在代码中控制功能
-        this.allowUserSettings = true; // 设为false可禁用用户设置面板
-        this.showSettingsPanel = false; // 设为false可完全隐藏显示设置面板和按钮
+        this.allowUserSettings = true;
+        this.showSettingsPanel = true;
+
+        this.magnifier = null; // 初始化为 null
 
         this.init();
-
-        // 初始化放大镜
-        this.initMagnifier();
     }
 
     async init() {
         this.initDisplaySettings();
         this.bindEvents();
         this.initSettingsPanelVisibility();
-        await this.loadImagesFromAPI(); // 程序入口：从API加载数据
+        this.initMagnifier(); // 在这里初始化
+        await this.loadImagesFromAPI();
     }
 
     initMagnifier() {
-        // 创建放大镜实例
-        this.magnifier = new ImageMagnifier({
-            // 选择框配置 - 这是在图片上显示的方形选择区域
-            selectionSize: 150,                    // 选择框大小（方形，150x150像素）
-            selectionBorderWidth: 2,               // 选择框边框宽度
-            selectionBorderColor: '#007bff',       // 选择框边框颜色
-            selectionBorderOpacity: 0.8,           // 选择框边框透明度
-            selectionBackgroundOpacity: 0.1,       // 选择框背景透明度
+        // 只有在启用放大镜时才创建实例
+        if (this.displaySettings.magnifier.enabled) {
+            this.magnifier = new ImageMagnifier({
+                selectionSize: this.displaySettings.magnifier.selectionSize,
+                selectionBorderWidth: 2,
+                selectionBorderColor: '#007bff',
+                selectionBorderOpacity: 0.8,
+                selectionBackgroundOpacity: 0.1,
+                zoomLevel: this.displaySettings.magnifier.zoomLevel,
+                displayBorderWidth: 3,
+                displayBorderColor: '#007bff',
+                displayBackgroundColor: '#ffffff',
+                displayShadowBlur: 15,
+                fadeSpeed: 200,
+                offsetX: 20,
+                offsetY: 20,
+                minZoom: 1.2,
+                maxZoom: 8
+            });
+        }
+    }
 
-            // 放大显示配置 - 这是在鼠标旁边显示的放大内容
-            zoomLevel: 2,                          // 放大倍数（2倍 = 150x150 -> 300x300）
-            displayBorderWidth: 3,                 // 显示框边框宽度
-            displayBorderColor: '#007bff',         // 显示框边框颜色
-            displayBackgroundColor: '#ffffff',     // 显示框背景颜色
-            displayShadowBlur: 15,                 // 显示框阴影模糊度
+    /**
+     * 切换放大镜功能
+     */
+    toggleMagnifier(enabled) {
+        this.displaySettings.magnifier.enabled = enabled;
 
-            // 动画配置
-            fadeSpeed: 200,                        // 淡入淡出速度
+        if (enabled) {
+            // 如果启用放大镜但实例不存在，则创建
+            if (!this.magnifier) {
+                this.initMagnifier();
+            }
+        } else {
+            // 如果禁用放大镜，销毁实例并清理样式
+            if (this.magnifier) {
+                this.magnifier.destroy();
+                this.magnifier = null;
+            }
+            // 清理所有图片的放大镜样式类
+            document.querySelectorAll('.magnifier-enabled, .magnifier-active').forEach(img => {
+                img.classList.remove('magnifier-enabled', 'magnifier-active');
+            });
+        }
+    }
 
-            // 位置配置
-            offsetX: 20,                           // 显示框与鼠标的X轴偏移
-            offsetY: 20,                           // 显示框与鼠标的Y轴偏移
+    /**
+     * 更新放大镜配置
+     */
+    updateMagnifierConfig() {
+        if (this.magnifier) {
+            this.magnifier.updateConfig({
+                selectionSize: this.displaySettings.magnifier.selectionSize,
+                zoomLevel: this.displaySettings.magnifier.zoomLevel
+            });
 
-            // 缩放限制
-            minZoom: 1.2,                          // 最小放大倍数
-            maxZoom: 8                             // 最大放大倍数
-        });
+            // 更新样式类
+            const selectionBox = document.querySelector('.magnifier-selection-box');
+            const displayBox = document.querySelector('.magnifier-display-box');
+
+            if (selectionBox) {
+                selectionBox.className = `magnifier-selection-box ${this.displaySettings.magnifier.selectionStyle}`;
+            }
+            if (displayBox) {
+                displayBox.className = `magnifier-display-box ${this.displaySettings.magnifier.displayStyle}`;
+            }
+        }
     }
 
     /**
@@ -294,20 +340,26 @@ class Gallery {
 
     bindModalEvents() {
         const modal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
         const closeBtn = document.querySelector('.modal-close');
         const downloadBtn = document.getElementById('download-btn');
         const visibilityControl = document.getElementById('visibility-control-container');
         const visibilityToggle = document.getElementById('image-visibility-toggle');
 
-        // 当模态框显示时，为模态框中的图片启用放大镜
+        // 当模态框显示时，根据设置决定是否启用放大镜
         modal.addEventListener('transitionend', (e) => {
             if (e.target === modal && modal.classList.contains('show')) {
                 const modalImg = modal.querySelector('#modal-image');
                 if (modalImg && modalImg.complete) {
-                    // 添加放大镜样式类
-                    modalImg.classList.add('magnifier-enabled');
-                    // 激活放大镜
-                    this.magnifier.activate(modalImg);
+                    if (this.displaySettings.magnifier.enabled && this.magnifier) {
+                        // 添加放大镜样式类
+                        modalImg.classList.add('magnifier-enabled');
+                        // 激活放大镜
+                        this.magnifier.activate(modalImg);
+                    } else {
+                        // 确保没有放大镜样式类
+                        modalImg.classList.remove('magnifier-enabled', 'magnifier-active');
+                    }
                 }
             }
         });
@@ -317,7 +369,9 @@ class Gallery {
             const modalImg = modal.querySelector('#modal-image');
             if (modalImg) {
                 modalImg.classList.remove('magnifier-enabled', 'magnifier-active');
-                this.magnifier.deactivate(modalImg);
+                if (this.magnifier) {
+                    this.magnifier.deactivate(modalImg);
+                }
             }
 
             modal.classList.remove('show');
@@ -511,6 +565,71 @@ class Gallery {
         const closeBtn = document.getElementById('close-settings-btn');
         const resetBtn = document.getElementById('reset-settings-btn');
 
+        // 绑定放大镜设置
+        const magnifierSettings = {
+            'enable-magnifier': (checked) => {
+                this.displaySettings.magnifier.enabled = checked;
+                this.toggleMagnifier(checked);
+            },
+            'selection-size': (value) => {
+                this.displaySettings.magnifier.selectionSize = parseInt(value);
+                this.updateMagnifierConfig();
+                // 更新显示的数值
+                const valueDisplay = document.querySelector('#selection-size + .range-value');
+                if (valueDisplay) valueDisplay.textContent = value + 'px';
+            },
+            'zoom-level': (value) => {
+                this.displaySettings.magnifier.zoomLevel = parseFloat(value);
+                this.updateMagnifierConfig();
+                // 更新显示的数值
+                const valueDisplay = document.querySelector('#zoom-level + .range-value');
+                if (valueDisplay) valueDisplay.textContent = value + 'x';
+            },
+            'selection-style': (value) => {
+                this.displaySettings.magnifier.selectionStyle = value;
+                this.updateMagnifierConfig();
+            },
+            'display-style': (value) => {
+                this.displaySettings.magnifier.displayStyle = value;
+                this.updateMagnifierConfig();
+            }
+        };
+
+        Object.entries(magnifierSettings).forEach(([elementId, handler]) => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                // 设置初始值
+                if (element.type === 'checkbox') {
+                    element.checked = this.displaySettings.magnifier.enabled;
+                } else if (element.type === 'range') {
+                    if (elementId === 'selection-size') {
+                        element.value = this.displaySettings.magnifier.selectionSize;
+                        const valueDisplay = document.querySelector('#selection-size + .range-value');
+                        if (valueDisplay) valueDisplay.textContent = element.value + 'px';
+                    } else if (elementId === 'zoom-level') {
+                        element.value = this.displaySettings.magnifier.zoomLevel;
+                        const valueDisplay = document.querySelector('#zoom-level + .range-value');
+                        if (valueDisplay) valueDisplay.textContent = element.value + 'x';
+                    }
+                } else if (element.tagName === 'SELECT') {
+                    if (elementId === 'selection-style') {
+                        element.value = this.displaySettings.magnifier.selectionStyle;
+                    } else if (elementId === 'display-style') {
+                        element.value = this.displaySettings.magnifier.displayStyle;
+                    }
+                }
+
+                // 绑定事件
+                const eventType = element.type === 'range' ? 'input' : 'change';
+                element.addEventListener(eventType, (e) => {
+                    if (this.allowUserSettings) {
+                        const value = element.type === 'checkbox' ? e.target.checked : e.target.value;
+                        handler(value);
+                    }
+                });
+            }
+        });
+
         if (settingsBtn) {
             settingsBtn.addEventListener('click', () => {
                 settingsPanel.classList.toggle('hidden');
@@ -594,6 +713,7 @@ class Gallery {
             gallery: {
                 name: true,
                 path: true,
+                size: true,
                 ratio: true,
                 tags: false
             },
@@ -603,6 +723,13 @@ class Gallery {
                 size: true,
                 ratio: true,
                 tags: false
+            },
+            magnifier: {
+                enabled: true,
+                selectionSize: 150,
+                zoomLevel: 2.0,
+                selectionStyle: 'solid',
+                displayStyle: 'square'
             }
         };
 
@@ -619,7 +746,31 @@ class Gallery {
         document.getElementById('show-modal-ratio').checked = true;
         document.getElementById('show-modal-tags').checked = false;
 
-        // 更新显示
+        // 更新放大镜设置
+        const enableMagnifier = document.getElementById('enable-magnifier');
+        const selectionSize = document.getElementById('selection-size');
+        const zoomLevel = document.getElementById('zoom-level');
+        const selectionStyle = document.getElementById('selection-style');
+        const displayStyle = document.getElementById('display-style');
+
+        if (enableMagnifier) {
+            enableMagnifier.checked = true;
+            this.toggleMagnifier(true);
+        }
+        if (selectionSize) {
+            selectionSize.value = 150;
+            const valueDisplay = document.querySelector('#selection-size + .range-value');
+            if (valueDisplay) valueDisplay.textContent = '150px';
+        }
+        if (zoomLevel) {
+            zoomLevel.value = 2.0;
+            const valueDisplay = document.querySelector('#zoom-level + .range-value');
+            if (valueDisplay) valueDisplay.textContent = '2.0x';
+        }
+        if (selectionStyle) selectionStyle.value = 'solid';
+        if (displayStyle) displayStyle.value = 'square';
+
+        this.updateMagnifierConfig();
         this.updateGalleryDisplay();
         this.updateModalDisplay();
     }
