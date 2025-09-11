@@ -241,6 +241,8 @@ class Gallery {
 
         // 从图片对象中直接获取信息
         const imagePath = image.filepath; // 例如: 'images/elysia_12345.jpg'
+        // 使用相对路径以兼容Live Server和文件系统访问
+        const relativeImagePath = `../../public/${imagePath}`;
         const fileName = image.filename;
         const folderPath = imagePath.substring(0, imagePath.lastIndexOf('/'));
         const ratio = this.calculateAspectRatio(image.width, image.height);
@@ -261,7 +263,7 @@ class Gallery {
         `;
 
         item.innerHTML = `
-            <img src="${imagePath}" alt="${fileName}" loading="lazy">
+            <img src="${relativeImagePath}" alt="${fileName}" loading="lazy">
             ${infoHTML}
         `;
 
@@ -271,7 +273,7 @@ class Gallery {
         }
 
         item.addEventListener('click', () => {
-            this.openImageModal(imagePath, fileName, folderPath, image);
+            this.openImageModal(relativeImagePath, fileName, folderPath, image);
         });
 
         return item;
@@ -384,13 +386,13 @@ class Gallery {
             }, 300);
         };
 
-/*         const closeModal = () => {
-            modal.classList.add('closing');
-            setTimeout(() => {
-                modal.style.display = 'none';
-                modal.classList.remove('closing', 'show');
-            }, 300);
-        }; */
+        /*         const closeModal = () => {
+                    modal.classList.add('closing');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        modal.classList.remove('closing', 'show');
+                    }, 300);
+                }; */
 
         closeBtn.addEventListener('click', closeModal);
         modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });

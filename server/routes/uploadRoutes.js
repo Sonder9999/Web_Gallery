@@ -201,7 +201,7 @@ router.post('/upload', upload.single('image'), async (req, res) => {
         const originalExtension = req.file.originalname ? path.extname(req.file.originalname) : '.jpg';
         const newFilename = await generateFilenameFromTags(tagList, originalExtension);
         const folderPath = await generateFolderPathFromTags(tagList);
-        const uploadPath = path.join(__dirname, '../../images/', folderPath);
+        const uploadPath = path.join(__dirname, '../../public/images/', folderPath);
         const filepath = path.join(uploadPath, newFilename);
         const relativePath = path.join('images', folderPath, newFilename).replace(/\\/g, '/');
         await fs.mkdir(uploadPath, { recursive: true });

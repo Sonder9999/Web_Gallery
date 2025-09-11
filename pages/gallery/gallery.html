@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery</title>
+    <!-- 矢量图标icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- 顶部导航栏样式 -->
+    <link rel="stylesheet" href="../../public/shared/css/nav.css">
+    <!-- gallery的样式 -->
+    <link rel="stylesheet" href="css/gallery.css">
+    <!-- 搜索功能样式 -->
+    <link rel="stylesheet" href="css/search.css">
+    <link rel="stylesheet" href="css/filter.css">
+    <link rel="stylesheet" href="css/magnifier.css">
+    <link rel="stylesheet" href="css/hover-preview.css">
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav id="top-nav">
+        <div id="top-logo">
+            <img src="../../public/images/settings/top_logo.png" id="top-logo-img" alt="Gallery Logo">
+        </div>
+
+        <div id="links">
+            <a href="/pages/gallery/gallery.html" class="nav-link active" title="主页">
+                <i class="fa-solid fa-house"></i>
+                <span class="link-text">主页</span>
+            </a>
+            <a href="/pages/tags-upload/tags-upload.html" class="nav-link" title="标签">
+                <i class="fa-regular fa-bookmark"></i>
+                <span class="link-text">标签</span>
+            </a>
+            <a href="/pages/gallery-upload/gallery-upload.html" class="nav-link" title="管理">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="link-text">管理</span>
+            </a>
+            <a href="/pages/tags-gallery/tags-gallery.html" class="nav-link" title="我的主页">
+                <i class="fa-regular fa-circle-user"></i>
+                <span class="link-text">用户</span>
+            </a>
+        </div>
+
+        <div id="search">
+            <div class="search-content">
+                <input class="search-input" type="text" placeholder="搜索标签、角色..." title="搜索">
+                <button class="nav-search-clean" type="button" title="清除">
+                    <i class="fa-solid fa-x"></i>
+                </button>
+            </div>
+            <button class="search-btn" type="button" title="搜索">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </div>
+
+        <div id="user">
+            <div id="user-name">Sonder</div>
+            <div id="user-avatar">
+                <img src="../../public/images/settings/user_avatar.png" id="user-avatar-img" alt="用户头像">
+            </div>
+        </div>
+    </nav>
+
+    <!-- 移动端底部导航栏 -->
+    <nav id="bottom-nav">
+        <div class="nav-links-mobile">
+            <a href="/pages/gallery/gallery.html" class="nav-link active" title="主页">
+                <i class="fa-solid fa-house"></i>
+                <span class="link-text">主页</span>
+            </a>
+            <a href="/pages/tags-upload/tags-upload.html" class="nav-link" title="标签">
+                <i class="fa-regular fa-bookmark"></i>
+                <span class="link-text">标签</span>
+            </a>
+            <a href="/pages/gallery-upload/gallery-upload.html" class="nav-link" title="管理">
+                <i class="fa-solid fa-sliders"></i>
+                <span class="link-text">管理</span>
+            </a>
+            <a href="/pages/tags-gallery/tags-gallery.html" class="nav-link" title="用户">
+                <i class="fa-regular fa-circle-user"></i>
+                <span class="link-text">用户</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main id="main-content">
+        <!-- 筛选和排序控制 -->
+        <div id="gallery-controls">
+            <div class="control-group">
+                <button id="shuffle-btn" class="control-btn">
+                    <i class="fa-solid fa-shuffle"></i>
+                    重新排列
+                </button>
+                <button id="load-more-btn" class="control-btn">
+                    <i class="fa-solid fa-plus"></i>
+                    加载更多
+                </button>
+                <button id="display-settings-btn" class="control-btn secondary">
+                    <i class="fa-solid fa-gear"></i>
+                    显示设置
+                </button>
+            </div>
+
+                <div id="filter-controls">
+                    <div id="resolution-filter" class="filter-group">
+                        <input type="number" id="filter-width" placeholder="宽度">
+                        <span class="separator">&times;</span>
+                        <input type="number" id="filter-height" placeholder="高度">
+                        <button id="resolution-mode-btn" title="切换匹配模式 (大于等于)">
+                            <i class="fa-solid fa-greater-than-equal"></i>
+                        </button>
+                        <label class="fuzzy-toggle">
+                            <input type="checkbox" id="resolution-fuzzy-toggle">
+                            <span class="toggle-switch"></span>
+                        </label>
+                        <div id="resolution-fuzzy-container">
+                            <span>&plusmn;</span>
+                            <input type="number" id="resolution-fuzzy-input" placeholder="误差">
+                        </div>
+                    </div>
+                    <div id="ratio-filter" class="filter-group">
+                        <input type="text" id="ratio-input" placeholder="e.g., 16:9">
+                        <label class="fuzzy-toggle">
+                            <input type="checkbox" id="ratio-fuzzy-toggle">
+                            <span class="toggle-switch"></span>
+                            <span class="toggle-label">模糊</span>
+                        </label>
+                    </div>
+                    <button id="clear-filters-btn" title="清除所有筛选">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+            <div class="stats">
+                已加载 <span id="loaded-count">0</span> 张图片
+            </div>
+        </div>
+
+        <!-- 显示设置面板 -->
+        <div id="display-settings-panel" class="settings-panel hidden">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3><i class="fa-solid fa-eye"></i> 显示设置</h3>
+                    <label class="master-toggle">
+                        <input type="checkbox" id="enable-display-settings" checked>
+                        <span class="toggle-text">启用用户设置</span>
+                    </label>
+                </div>
+
+                <div id="user-settings-container">
+                    <div class="settings-section">
+                        <h4>图片卡片显示</h4>
+                        <div class="settings-options">
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-name" checked>
+                                <span>显示文件名</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-path" checked>
+                                <span>显示路径</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-size" checked>
+                                <span>显示尺寸</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-ratio" checked>
+                                <span>显示比例</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-card-tags">
+                                <span>显示标签</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>详情页显示</h4>
+                        <div class="settings-options">
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-name" checked>
+                                <span>显示文件名</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-path" checked>
+                                <span>显示路径</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-size" checked>
+                                <span>显示尺寸</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-ratio" checked>
+                                <span>显示比例</span>
+                            </label>
+                            <label class="setting-item">
+                                <input type="checkbox" id="show-modal-tags">
+                                <span>显示标签</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 在显示设置面板中添加放大镜设置 -->
+                    <div class="settings-section">
+                        <h4>放大镜设置</h4>
+                        <div class="settings-options">
+                            <label class="setting-item">
+                                <input type="checkbox" id="enable-magnifier" checked>
+                                <span>启用放大镜</span>
+                            </label>
+                            <label class="setting-item range-item">
+                                <span>选择框大小</span>
+                                <input type="range" id="selection-size" min="100" max="300" value="150" step="10">
+                                <span class="range-value">150px</span>
+                            </label>
+                            <label class="setting-item range-item">
+                                <span>放大倍数</span>
+                                <input type="range" id="zoom-level" min="1.2" max="5" value="2" step="0.1">
+                                <span class="range-value">2.0x</span>
+                            </label>
+                            <label class="setting-item">
+                                <span>选择框样式</span>
+                                <select id="selection-style">
+                                    <option value="solid">实线边框</option>
+                                    <option value="dashed">虚线边框</option>
+                                    <option value="dotted">点状边框</option>
+                                </select>
+                            </label>
+                            <label class="setting-item">
+                                <span>显示框样式</span>
+                                <select id="display-style">
+                                    <option value="square">方形</option>
+                                    <option value="rounded">圆角</option>
+                                    <option value="circular">圆形</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <div class="settings-actions">
+                    <button id="reset-settings-btn" class="control-btn secondary">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        重置默认
+                    </button>
+                    <button id="close-settings-btn" class="control-btn primary">
+                        <i class="fa-solid fa-check"></i>
+                        确定
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 瀑布流容器 -->
+        <div id="gallery-container">
+            <div id="gallery-grid" class="masonry-grid">
+                <!-- 图片将通过JS动态添加到这里 -->
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loading-indicator" class="loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>加载中...</span>
+            </div>
+        </div>
+
+        <!-- 图片预览弹窗 -->
+        <div id="image-modal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close">&times;</span>
+                <img id="modal-image" src="" alt="">
+                <div class="modal-info">
+                    <div class="modal-info-line">
+                        <span class="modal-info-item modal-display-item" id="modal-path-item">
+                            <i class="fa-solid fa-folder info-icon"></i>
+                            <span id="modal-path" class="info-value"></span>
+                        </span>
+                        <span class="modal-info-item modal-display-item" id="modal-title-item">
+                            <i class="fa-solid fa-file-image info-icon"></i>
+                            <span id="modal-title" class="info-value"></span>
+                        </span>
+                        <span class="modal-info-item modal-display-item" id="modal-size-item">
+                            <i class="fa-solid fa-expand info-icon"></i>
+                            <span id="modal-size" class="info-value"></span>
+                        </span>
+                        <span class="modal-info-item modal-display-item" id="modal-ratio-item">
+                            <i class="fa-solid fa-crop info-icon"></i>
+                            <span id="modal-ratio" class="info-value"></span>
+                        </span>
+                    </div>
+                    <div id="modal-tags" class="modal-display-item modal-tags-section" style="display: none;">
+                        <div class="tags-container">
+                            <!-- 标签将通过JS动态添加 -->
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button id="download-btn" class="control-btn">
+                            <i class="fa-solid fa-download"></i>
+                            下载
+                        </button>
+                        <div id="visibility-control-container" style="display: none;">
+                            <label class="toggle-item">
+                                <span>主页显示</span>
+                                <div id="image-visibility-toggle" class="toggle-switch"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript -->
+    <script src="js/hover-preview.js"></script>
+    <script src="js/magnifier.js"></script>
+    <script src="../../public/shared/js/nav.js"></script>
+    <script src="js/gallery.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/filter.js"></script>
+</body>
+</html>

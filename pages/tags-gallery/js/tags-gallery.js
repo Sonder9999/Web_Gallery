@@ -86,7 +86,7 @@ class TagsGallery {
 
         const card = document.createElement('a');
         card.className = 'tag-card';
-        card.href = `/index.html?search=${encodeURIComponent(this.getTagName(tag))}`;
+        card.href = `/pages/gallery/gallery.html?search=${encodeURIComponent(this.getTagName(tag))}`;
 
         const isActive = !tag.is_hidden;
         const visibilityToggleHTML = this.enableVisibilityControls ? `
@@ -101,7 +101,10 @@ class TagsGallery {
         // 如果没有，就给 card 添加 'no-cover' 类，让 CSS 来处理样式
         let imageHTML = '';
         if (tag.coverImage) {
-            imageHTML = `<img src="${tag.coverImage.filepath.replace(/\\/g, '/')}" class="card-image" alt="${this.getTagName(tag)}">`;
+            const imagePath = tag.coverImage.filepath.replace(/\\/g, '/');
+            // 使用相对路径以兼容Live Server和文件系统访问
+            const relativeImagePath = `../../public/${imagePath}`;
+            imageHTML = `<img src="${relativeImagePath}" class="card-image" alt="${this.getTagName(tag)}">`;
         } else {
             card.classList.add('no-cover');
         }

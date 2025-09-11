@@ -1,7 +1,7 @@
 /* css/upload.css - 上传页面样式 */
 
 /* 主内容区域 */
-#upload-content {
+#gallery-upload-content {
     min-height: calc(100vh - 70px);
     background: var(--bg-light);
     /* padding-top: 70px; 为固定导航栏留出空间 */
@@ -550,7 +550,7 @@
 }
 
 @media (max-width: 480px) {
-    #upload-content {
+    #gallery-upload-content {
         padding-top: 0;
         padding-bottom: 70px; /* 为底部导航栏留出空间 */
     }

@@ -10,7 +10,7 @@ li {
     list-style: none;
 }
 
-#tags-content {
+#tags-upload-content {
     max-width: 1400px;
     margin: 30px auto;
     padding: 24px;
@@ -486,7 +486,7 @@ li {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-    #tags-content {
+    #tags-upload-content {
         padding: 16px;
     }
 
