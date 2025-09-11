@@ -1,0 +1,148 @@
+/* 图片信息显示样式扩展 */
+.gallery-item:hover .gallery-item-info {
+    opacity: 1;
+}
+
+.gallery-item-info .info-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-item-info .info-path {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-item-info .info-dimensions-line {
+    display: flex;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0.3rem;
+}
+
+.gallery-item-info .info-size {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.gallery-item-info .info-ratio {
+    background: rgba(139, 69, 19, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: white;
+}
+
+.gallery-item-info .info-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+}
+
+.gallery-item-info .tag {
+    background: rgba(139, 69, 19, 0.8);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.3rem;
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+/* 模态框标签部分样式 */
+.modal-tags-section {
+    margin-top: 4px;
+    padding-top: 0px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-tags-section .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.modal-tags-section .tag {
+    background: var(--main-color);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.modal-tags-section .tag:hover {
+    background: var(--main-hover);
+    transform: translateY(-1px);
+}
+
+.modal-tags-section .tag.no-tags {
+    background: rgba(0, 0, 0, 0.1);
+    color: var(--text-light);
+    cursor: default;
+}
+
+.modal-tags-section .tag.no-tags:hover {
+    background: rgba(0, 0, 0, 0.1);
+    transform: none;
+}
+
+/* [新增] 弹窗中可见性开关的样式 */
+.modal-actions .toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+}
+
+.modal-actions .toggle-item span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.modal-actions .toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: var(--border-color);
+    border-radius: 11px;
+    transition: background-color var(--transition-fast);
+}
+
+.modal-actions .toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    top: 2px;
+    left: 2px;
+    background: white;
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+}
+
+.modal-actions .toggle-switch.active {
+    background-color: var(--primary-color);
+}
+
+.modal-actions .toggle-switch.active::before {
+    transform: translateX(18px);
+}

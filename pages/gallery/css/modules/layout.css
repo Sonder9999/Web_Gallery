@@ -1,0 +1,23 @@
+/**
+ * 主布局和瀑布流样式
+ * 包含主内容区域和瀑布流容器的布局
+ */
+
+/* 主内容区域 */
+#main-content {
+    min-height: calc(100vh - 70px);
+    background: var(--bg-light);
+}
+
+/* 瀑布流容器 */
+#gallery-container {
+    padding: 24px;
+    position: relative;
+}
+
+.masonry-grid {
+    column-count: auto;
+    column-width: 280px;
+    column-gap: 20px;
+    column-fill: balance;
+}

@@ -1,0 +1,163 @@
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .masonry-grid {
+        column-width: 250px;
+        column-gap: 16px;
+    }
+
+    #gallery-container {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .masonry-grid {
+        column-width: 200px;
+        column-gap: 12px;
+    }
+
+    #gallery-container {
+        padding: 16px;
+    }
+
+    #gallery-controls {
+        padding: 16px;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .control-group {
+        justify-content: center;
+    }
+
+    .stats {
+        text-align: center;
+    }
+
+    .settings-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 0;
+        background: rgba(26, 26, 26, 0.98);
+    }
+
+    .settings-panel.hidden {
+        transform: translateY(-100%);
+    }
+
+    .display-toggles {
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+    }
+
+    .toggle-item {
+        padding: 0.4rem 0.6rem;
+    }
+
+    .toggle-item label {
+        font-size: 0.8rem;
+    }
+
+    .gallery-item-info {
+        padding: 0.7rem 0.6rem 0.6rem;
+    }
+
+    .gallery-item-info .info-name {
+        font-size: 0.8rem;
+    }
+
+    .gallery-item-info .info-path,
+    .gallery-item-info .info-dimensions {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .masonry-grid {
+        column-count: 1;
+        column-width: auto;
+    }
+
+    #gallery-container {
+        padding: 12px;
+    }
+
+    .control-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .modal-content {
+        max-width: 95vw;
+        max-height: 95vh;
+        margin: 10px;
+    }
+
+    #modal-image {
+        max-height: 50vh;
+    }
+
+    .modal-info {
+        padding: 15px;
+    }
+
+    .modal-actions {
+        padding-top: 12px;
+    }
+
+    .modal-actions .control-btn {
+        flex: 1;
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .modal-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .modal-ratio-group {
+        text-align: left;
+        margin-top: 4px;
+    }
+
+    .modal-ratio-group span {
+        display: inline;
+        margin-right: 12px;
+    }
+
+    .modal-title-group h3 {
+        font-size: 16px;
+    }
+
+    .modal-info-line {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        font-size: 13px;
+    }
+
+    .modal-info-item {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    #modal-path,
+    #modal-title {
+        max-width: none;
+        word-break: break-all;
+    }
+}
+
+/* 暗色模式 */
+@media (prefers-color-scheme: dark) {
+    .modal {
+        background-color: rgba(0, 0, 0, 0.95);
+    }
+}

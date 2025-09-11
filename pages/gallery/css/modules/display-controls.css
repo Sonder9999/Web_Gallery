@@ -1,0 +1,107 @@
+/* 显示设置面板样式 */
+.display-settings {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 0.8rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-top: 1rem;
+}
+
+.display-settings h4 {
+    color: white;
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.display-group {
+    margin-bottom: 1rem;
+}
+
+.display-group:last-child {
+    margin-bottom: 0;
+}
+
+.display-group h5 {
+    color: var(--main-color);
+    font-size: 0.9rem;
+    margin-bottom: 0.6rem;
+    font-weight: 500;
+}
+
+.display-toggles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.8rem;
+}
+
+.toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.7rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.toggle-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-item label {
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    flex: 1;
+}
+
+/* 自定义开关样式 */
+.toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.toggle-switch::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch.active {
+    background: var(--main-color);
+}
+
+.toggle-switch.active::before {
+    transform: translateX(16px);
+}
+
+/* 图片信息显示样式 */
+.gallery-item-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    padding: 1rem 0.8rem 0.8rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}

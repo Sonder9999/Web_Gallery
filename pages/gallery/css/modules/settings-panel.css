@@ -1,0 +1,129 @@
+/* 设置面板样式 */
+.settings-panel {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    width: 320px;
+    background: rgba(26, 26, 26, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transform: translateX(0);
+    transition: all 0.3s ease;
+}
+
+.settings-panel.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.settings-content {
+    padding: 20px;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-content h3 {
+    color: white;
+    font-size: 1.1rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.master-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.master-toggle .toggle-text {
+    color: white;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.master-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--main-color);
+}
+
+#user-settings-container.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.settings-section {
+    margin-bottom: 24px;
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section h4 {
+    color: var(--main-color);
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.settings-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.setting-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.setting-item input[type="checkbox"] {
+    margin-right: 10px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--main-color);
+}
+
+.setting-item span {
+    color: white;
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+.settings-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-actions .control-btn {
+    flex: 1;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+}

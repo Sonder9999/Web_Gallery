@@ -1,0 +1,19 @@
+/* 加载状态样式 */
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--text-light);
+    font-size: 16px;
+    gap: 12px;
+}
+
+.loading.hidden {
+    display: none;
+}
+
+.loading i {
+    font-size: 24px;
+}
