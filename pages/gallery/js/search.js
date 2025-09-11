@@ -45,12 +45,15 @@ class SearchManager {
         const query = this.searchInput.value.trim();
 
         if (!query) {
-            this.gallery.currentSourceImages = [...this.gallery.originalImages];
+            // 重置到原始图片列表
+            const originalImages = this.gallery.originalImages;
+            this.gallery.imageLoader.currentSourceImages = [...originalImages];
+
             // 如果清空了搜索框，也需要让筛选器在所有图片上重新应用
             if (window.filterManager) {
                 window.filterManager.applyFilters();
             } else {
-                this.gallery.updateWithNewImages(this.gallery.currentSourceImages);
+                this.gallery.updateWithNewImages(originalImages);
             }
             return;
         }
@@ -59,16 +62,16 @@ class SearchManager {
         const newUrl = `${window.location.pathname}?search=${encodeURIComponent(query)}`;
         window.history.pushState({ path: newUrl }, '', newUrl);
 
-
         console.log(`正在执行高级搜索: ${query}`);
-        this.gallery.showLoading(true);
+        this.gallery.uiController.showLoading(true);
 
         try {
             const response = await fetch(`${this.API_BASE_URL}/search?q=${encodeURIComponent(query)}`);
             if (!response.ok) throw new Error(`网络请求错误: ${response.status}`);
             const searchResults = await response.json();
 
-            this.gallery.currentSourceImages = searchResults;
+            // 更新数据源
+            this.gallery.imageLoader.currentSourceImages = searchResults;
 
             // 让筛选器在新的搜索结果上应用筛选
             if (window.filterManager) {
@@ -76,7 +79,6 @@ class SearchManager {
             } else {
                 this.gallery.updateWithNewImages(searchResults);
             }
-
 
             if (searchResults.length === 0) {
                 this.gallery.updateWithNewImages([]);
@@ -89,17 +91,27 @@ class SearchManager {
             const container = document.getElementById('gallery-grid');
             container.innerHTML = `<p class="error-message">搜索时发生错误。</p>`;
         } finally {
-            this.gallery.showLoading(false);
+            this.gallery.uiController.showLoading(false);
         }
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 监听gallery准备就绪事件
+    document.addEventListener('galleryReady', (event) => {
+        const gallery = event.detail;
+        window.searchManager = new SearchManager(gallery);
+        console.log('搜索管理器已初始化。');
+    });
+
+    // 备用方案：如果gallery已经存在（兼容性）
     const checkGalleryReady = setInterval(() => {
         if (window.gallery) {
             clearInterval(checkGalleryReady);
-            window.searchManager = new SearchManager(window.gallery);
-            console.log('搜索管理器已初始化。');
+            if (!window.searchManager) {
+                window.searchManager = new SearchManager(window.gallery);
+                console.log('搜索管理器已初始化（备用方案）。');
+            }
         }
     }, 100);
 });

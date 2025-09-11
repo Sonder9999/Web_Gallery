@@ -205,11 +205,21 @@ class FilterManager {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 监听gallery准备就绪事件
+    document.addEventListener('galleryReady', (event) => {
+        const gallery = event.detail;
+        window.filterManager = new FilterManager(gallery);
+        console.log('高级筛选管理器已初始化。');
+    });
+
+    // 备用方案：如果gallery已经存在（兼容性）
     const checkGalleryReady = setInterval(() => {
         if (window.gallery) {
             clearInterval(checkGalleryReady);
-            window.filterManager = new FilterManager(window.gallery);
-            console.log('高级筛选管理器已初始化。');
+            if (!window.filterManager) {
+                window.filterManager = new FilterManager(window.gallery);
+                console.log('高级筛选管理器已初始化（备用方案）。');
+            }
         }
     }, 100);
 });

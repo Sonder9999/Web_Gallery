@@ -12,7 +12,7 @@ import { UIController } from './modules/UIController.js';
 class Gallery {
     constructor() {
         this.initializeModules();
-        // 不在构造函数中调用init，而是在外部调用
+        this.init();
     }
 
     /**
@@ -182,24 +182,6 @@ class Gallery {
         return this.imageLoader.hasMoreImages;
     }
 
-    // 为筛选功能提供兼容接口
-    get currentSourceImages() {
-        return this.imageLoader.currentSourceImages;
-    }
-
-    get originalImages() {
-        return this.imageLoader.originalImages;
-    }
-
-    get allImages() {
-        return this.imageLoader.allImages;
-    }
-
-    // 为筛选功能提供方法
-    updateWithNewImages(newImageList, newSource = null) {
-        this.uiController.updateGalleryContent(newImageList, newSource);
-    }
-
     // 暴露模块供调试使用
     get modules() {
         return {
@@ -213,22 +195,15 @@ class Gallery {
 }
 
 // 页面加载完成后初始化画廊
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     const gallery = new Gallery();
-
-    // 等待画廊完全初始化后再暴露到全局
-    await gallery.init();
 
     // 调试信息
     console.log('画廊已初始化');
     console.log('显示设置:', gallery.getDisplaySettings());
 
-    // 全局暴露gallery实例以便调试和筛选功能使用
+    // 全局暴露gallery实例以便调试
     window.gallery = gallery;
-
-    // 触发自定义事件通知其他模块gallery已准备就绪
-    const galleryReadyEvent = new CustomEvent('galleryReady', { detail: gallery });
-    document.dispatchEvent(galleryReadyEvent);
 });
 
 export default Gallery;
