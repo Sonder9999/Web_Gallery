@@ -82,11 +82,13 @@ app.get('/api/config', (req, res) => {
 // --- 1. 引入你的路由模块 ---
 const uploadRoutes = require('./server/routes/uploadRoutes.js'); // 引入上传路由
 const tagRoutes = require('./server/routes/tagRoutes.js');      // 引入标签管理路由
+const imageProxyRoutes = require('./server/routes/imageProxyRoutes.js'); // 按需压缩图片
 
 
 // --- 2. 挂载路由 ---
 // 所有以 /api 开头的请求，都交给 tagRoutes 模块来处理
 app.use('/api', tagRoutes);
+app.use('/api/image', imageProxyRoutes);
 
 // 所有根路径下的请求 (如 /upload, /overwrite)，都交给 uploadRoutes 模块来处理
 app.use('/', uploadRoutes);

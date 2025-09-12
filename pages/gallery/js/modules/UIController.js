@@ -115,8 +115,13 @@ export class UIController {
         item.className = 'gallery-item';
         item.style.animationDelay = `${Math.random() * 0.5}s`;
 
-        const imagePath = image.filepath;
-        const relativeImagePath = `../../public/${imagePath}`;
+    const imagePath = image.filepath; // 例如 images/xxx/yyy.jpg（相对 public）
+        const originalUrl = `../../public/${imagePath}`;
+        // 使用后端按需压缩预览，降低首屏体积；基于后端域名构造绝对地址以支持在 5501 静态服务下访问
+        const apiDomain = (window.configManager && typeof window.configManager.getDomain === 'function')
+            ? window.configManager.getDomain()
+            : 'http://localhost:3000';
+        const previewUrl = `${apiDomain}/api/image/preview?path=${encodeURIComponent(imagePath)}&w=480&q=60&fmt=auto`;
         const fileName = image.filename;
         const folderPath = imagePath.substring(0, imagePath.lastIndexOf('/'));
         const ratio = this.imageLoader.calculateAspectRatio(image.width, image.height);
@@ -126,9 +131,22 @@ export class UIController {
         const infoHTML = this.displayController.generateImageInfoHTML(fileName, folderPath, dimensions, ratio);
 
         item.innerHTML = `
-            <img src="${relativeImagePath}" alt="${fileName}" loading="lazy">
+            <img src="${previewUrl}" alt="${fileName}" loading="lazy">
             ${infoHTML}
         `;
+
+        // 为 hover 预览与模态原图提供元数据
+        item.dataset.fullSrc = originalUrl;
+        item.dataset.width = image.width;
+        item.dataset.height = image.height;
+
+        // 预览失败回退到原图，避免空白
+        const imgEl = item.querySelector('img');
+        imgEl.addEventListener('error', () => {
+            if (imgEl.dataset.fallbackApplied === '1') return;
+            imgEl.dataset.fallbackApplied = '1';
+            imgEl.src = originalUrl;
+        });
 
         // 如果启用了标签显示，异步加载标签
         if (this.displayController.gallerySettings.tags) {
@@ -137,7 +155,7 @@ export class UIController {
 
         // 绑定点击事件
         item.addEventListener('click', () => {
-            this.modalManager.openImageModal(relativeImagePath, fileName, folderPath, image);
+            this.modalManager.openImageModal(originalUrl, fileName, folderPath, image);
         });
 
         return item;
