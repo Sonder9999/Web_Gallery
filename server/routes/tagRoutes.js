@@ -1,15 +1,11 @@
 // server/routes/tagRoutes.js - 支持层级结构和高级搜索的标签路由
 const express = require('express');
 const mysql = require('mysql2/promise');
+const envConfig = require('../../config/env');
 const router = express.Router();
 
 // --- 数据库连接配置 ---
-const dbConfig = {
-    host: 'localhost',
-    user: 'root',
-    password: '198386',
-    database: 'gallery_db'
-};
+const dbConfig = envConfig.database;
 
 // --- [新增] 高级搜索查询解析器 ---
 function parseSearchQuery(query) {

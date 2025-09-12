@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const { imageSize: sizeOf } = require('image-size');
+const envConfig = require('../../config/env');
 
 const router = express.Router();
 
@@ -14,15 +15,7 @@ const FILENAME_LANGUAGE = 'en'; // 生成文件名时优先使用的语言
 const FOLDER_NAME_LANGUAGE = 'en'; // 生成文件夹名时优先使用的语言
 const STORAGE_CONFIG = require('../config/storage');
 
-const dbConfig = {
-    host: 'localhost',
-    user: 'root',
-    password: '198386', // 这里是你的密码
-    database: 'gallery_db',
-    waitForConnections: true,
-    connectionLimit: 15,
-    queueLimit: 0
-};
+const dbConfig = envConfig.database;
 
 const pool = mysql.createPool(dbConfig);
 console.log('[数据库] 连接池已成功创建。');

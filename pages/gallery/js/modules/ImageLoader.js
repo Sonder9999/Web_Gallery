@@ -6,7 +6,7 @@ import { GalleryConfig } from './GalleryConfig.js';
 
 export class ImageLoader {
     constructor() {
-        this.API_BASE_URL = GalleryConfig.API_BASE_URL;
+        this.API_BASE_URL = null; // 将通过配置动态设置
         this.originalImages = [];
         this.currentSourceImages = [];
         this.allImages = [];
@@ -14,6 +14,12 @@ export class ImageLoader {
         this.batchSize = GalleryConfig.DEFAULT_BATCH_SIZE;
         this.currentPage = 0;
         this.isLoading = false;
+
+        this.init();
+    }
+
+    async init() {
+        this.API_BASE_URL = await GalleryConfig.getApiBaseUrl();
     }
 
     /**
@@ -21,6 +27,11 @@ export class ImageLoader {
      */
     async loadImagesFromAPI() {
         try {
+            // 确保API_BASE_URL已初始化
+            if (!this.API_BASE_URL) {
+                await this.init();
+            }
+
             const response = await fetch(`${this.API_BASE_URL}/images`);
             if (!response.ok) throw new Error('网络请求失败');
             const images = await response.json();
@@ -106,6 +117,11 @@ export class ImageLoader {
      */
     async loadImageTags(imageId) {
         try {
+            // 确保API_BASE_URL已初始化
+            if (!this.API_BASE_URL) {
+                await this.init();
+            }
+
             console.log('正在加载图片标签，图片ID:', imageId);
             const response = await fetch(`${this.API_BASE_URL}/images/${imageId}/tags`);
             console.log('API响应状态:', response.status);
@@ -132,6 +148,11 @@ export class ImageLoader {
      */
     async toggleImageVisibility(imageId, shouldBeHidden) {
         try {
+            // 确保API_BASE_URL已初始化
+            if (!this.API_BASE_URL) {
+                await this.init();
+            }
+
             const response = await fetch(`${this.API_BASE_URL}/images/${imageId}/visibility`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },

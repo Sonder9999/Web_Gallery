@@ -2,7 +2,7 @@
 
 class TagsGallery {
     constructor() {
-        this.API_BASE_URL = 'http://localhost:3000/api';
+        this.API_BASE_URL = null; // 将通过配置动态设置
         this.DISPLAY_LANGUAGE = 'zh';
         this.container = document.getElementById('tags-gallery-container');
         this.loadingIndicator = document.getElementById('loading-indicator');
@@ -12,6 +12,10 @@ class TagsGallery {
 
     async init() {
         this.showLoading(true);
+
+        // 加载API配置
+        await this.loadConfig();
+
         try {
             const response = await fetch(`${this.API_BASE_URL}/tags?visible=true`);
             if (!response.ok) throw new Error('获取标签列表失败');
@@ -30,6 +34,19 @@ class TagsGallery {
             this.container.innerHTML = `<p class="error-message">加载失败，请稍后重试。</p>`;
         } finally {
             this.showLoading(false);
+        }
+    }
+
+    async loadConfig() {
+        try {
+            if (window.getApiBaseUrl) {
+                this.API_BASE_URL = await window.getApiBaseUrl();
+            } else {
+                this.API_BASE_URL = 'http://localhost:3000/api';
+            }
+        } catch (error) {
+            console.error('加载API配置失败，使用默认值:', error);
+            this.API_BASE_URL = 'http://localhost:3000/api';
         }
     }
 

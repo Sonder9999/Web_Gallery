@@ -2,7 +2,7 @@
 
 class HierarchicalTagsManager {
     constructor() {
-        this.API_BASE_URL = 'http://localhost:3000/api';
+        this.API_BASE_URL = null; // 将通过配置动态设置
         this.tagsTree = [];
         this.flatTags = new Map();
         this.currentEditingTagId = null;
@@ -24,10 +24,26 @@ class HierarchicalTagsManager {
     }
 
     async init() {
+        // 加载API配置
+        await this.loadConfig();
+
         this.cacheDOMElements();
         this.renderInputFields();
         this.bindGlobalEvents();
         await this.loadAndRenderAll();
+    }
+
+    async loadConfig() {
+        try {
+            if (window.getApiBaseUrl) {
+                this.API_BASE_URL = await window.getApiBaseUrl();
+            } else {
+                this.API_BASE_URL = 'http://localhost:3000/api';
+            }
+        } catch (error) {
+            console.error('加载API配置失败，使用默认值:', error);
+            this.API_BASE_URL = 'http://localhost:3000/api';
+        }
     }
 
     getDescendantIds(tagId) {

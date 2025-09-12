@@ -5,7 +5,7 @@
  */
 class TagTreeSelector {
     constructor(language = "zh") {
-        this.API_BASE_URL = "http://localhost:3000/api";
+        this.API_BASE_URL = null; // 将通过配置动态设置
         this.language = language; // 'zh', 'en', etc.
         this.treeData = [];
         this.flatData = new Map();
@@ -17,9 +17,25 @@ class TagTreeSelector {
             console.error("Tag tree container not found!");
             return;
         }
+
+        // 加载API配置
+        await this.loadConfig();
         await this.fetchTags();
         this.render();
         this.bindEvents();
+    }
+
+    async loadConfig() {
+        try {
+            if (window.getApiBaseUrl) {
+                this.API_BASE_URL = await window.getApiBaseUrl();
+            } else {
+                this.API_BASE_URL = "http://localhost:3000/api";
+            }
+        } catch (error) {
+            console.error('加载API配置失败，使用默认值:', error);
+            this.API_BASE_URL = "http://localhost:3000/api";
+        }
     }
 
     async fetchTags() {
@@ -123,7 +139,7 @@ class TagTreeSelector {
  */
 class ImageUploader {
     constructor() {
-        this.API_BASE_URL = "http://localhost:3000";
+        this.API_BASE_URL = null; // 将通过配置动态设置
         this.selectedFiles = [];
         this.currentSelectedImage = null;
 
@@ -132,10 +148,28 @@ class ImageUploader {
     }
 
     async init() {
+        // 加载API配置
+        await this.loadConfig();
+
         this.cacheDOMElements();
         this.bindEvents();
         await this.tagSelector.init(); // 初始化标签树
         this.updateStats();
+    }
+
+    async loadConfig() {
+        try {
+            if (window.getApiBaseUrl) {
+                const apiBaseUrl = await window.getApiBaseUrl();
+                // 移除 /api 后缀，因为这里需要的是基础URL
+                this.API_BASE_URL = apiBaseUrl.replace('/api', '');
+            } else {
+                this.API_BASE_URL = "http://localhost:3000";
+            }
+        } catch (error) {
+            console.error('加载API配置失败，使用默认值:', error);
+            this.API_BASE_URL = "http://localhost:3000";
+        }
     }
 
     cacheDOMElements() {
@@ -433,6 +467,11 @@ class ImageUploader {
         document.getElementById("upload-all-btn").disabled = !hasFiles;
     }
     async uploadFile(fileData, { onDuplicate = null } = {}) {
+        // 确保API_BASE_URL已初始化
+        if (!this.API_BASE_URL) {
+            await this.loadConfig();
+        }
+
         const formData = new FormData();
         formData.append("image", fileData.file);
         formData.append("tags", JSON.stringify(fileData.tags));

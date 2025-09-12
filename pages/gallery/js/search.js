@@ -3,13 +3,28 @@
 class SearchManager {
     constructor(galleryInstance) {
         this.gallery = galleryInstance;
-        this.API_BASE_URL = 'http://localhost:3000/api';
+        this.API_BASE_URL = null; // 将通过配置动态设置
         this.searchInput = document.querySelector('.search-input');
         this.searchBtn = document.querySelector('.search-btn');
 
+        this.init();
+    }
+
+    async init() {
+        // 加载配置
+        await this.loadConfig();
         this.bindEvents();
         // [新增] 初始化时检查URL参数
         this.checkURLForSearchQuery();
+    }
+
+    async loadConfig() {
+        try {
+            this.API_BASE_URL = await getApiBaseUrl();
+        } catch (error) {
+            console.error('加载API配置失败，使用默认值:', error);
+            this.API_BASE_URL = 'http://localhost:3000/api';
+        }
     }
 
     bindEvents() {

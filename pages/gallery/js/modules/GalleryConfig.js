@@ -3,9 +3,32 @@
  * 包含所有配置常量和默认设置
  */
 export class GalleryConfig {
-    static API_BASE_URL = 'http://localhost:3000/api';
+    static API_BASE_URL = null; // 将通过配置动态设置
 
     static DEFAULT_BATCH_SIZE = 20;
+
+    // 初始化配置
+    static async init() {
+        try {
+            if (window.getApiBaseUrl) {
+                this.API_BASE_URL = await window.getApiBaseUrl();
+            } else {
+                // 降级方案
+                this.API_BASE_URL = 'http://localhost:3000/api';
+            }
+        } catch (error) {
+            console.error('加载GalleryConfig失败，使用默认配置:', error);
+            this.API_BASE_URL = 'http://localhost:3000/api';
+        }
+    }
+
+    // 获取API基础URL
+    static async getApiBaseUrl() {
+        if (!this.API_BASE_URL) {
+            await this.init();
+        }
+        return this.API_BASE_URL;
+    }
 
     static DEFAULT_DISPLAY_SETTINGS = {
         gallery: {
