@@ -121,7 +121,7 @@ export class UIController {
         const apiDomain = (window.configManager && typeof window.configManager.getDomain === 'function')
             ? window.configManager.getDomain()
             : 'http://localhost:3000';
-        const previewUrl = `${apiDomain}/api/image/preview?path=${encodeURIComponent(imagePath)}&w=480&q=60&fmt=auto`;
+    const previewUrl = `${apiDomain}/api/image/preview?path=${encodeURIComponent(imagePath)}&w=480&q=60&fmt=webp`;
         const fileName = image.filename;
         const folderPath = imagePath.substring(0, imagePath.lastIndexOf('/'));
         const ratio = this.imageLoader.calculateAspectRatio(image.width, image.height);
