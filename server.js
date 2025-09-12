@@ -63,9 +63,17 @@ app.get('/', (req, res) => {
 
 // --- 环境配置API (供前端获取) ---
 app.get('/api/config', (req, res) => {
+    const xfProto = req.headers['x-forwarded-proto'];
+    const xfHost = req.headers['x-forwarded-host'];
+    const hostHeader = req.get('host');
+
+    const scheme = xfProto || req.protocol || 'http';
+    const host = xfHost || hostHeader || (envConfig.isProduction ? 'gallery.kisara.xyz' : `localhost:${envConfig.server.port}`);
+    const domain = `${scheme}://${host}`;
+
     res.json({
-        apiBaseUrl: envConfig.getApiBaseUrl(),
-        domain: envConfig.domain,
+        apiBaseUrl: `${domain}/api`,
+        domain,
         environment: envConfig.NODE_ENV,
         paths: envConfig.paths
     });
